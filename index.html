@@ -5,7 +5,253 @@
 <title>College Quiz</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-/* ... your full CSS remains unchanged ... */
+:root{
+  --royal-blue:#0b3d91;
+  --royal-blue-dark:#072a65;
+  --gold:#ffd166;
+  --text:#0b1b2b;
+  --wrong:#d32f2f;
+  --correct:#2e7d32;
+  --panel:#ffffff;
+  --bg:#f3f7ff;
+  --pass-orange:#ff7f11;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+/* Access Code Overlay */
+#accessOverlay{
+  position:fixed;
+  inset:0;
+  background:#ffffffee;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  z-index:10000;
+}
+#accessOverlay input{
+  padding:8px; font-size:16px; margin-top:10px;
+}
+#accessOverlay button{
+  margin-top:10px; padding:8px 16px; font-size:16px;
+}
+#accessOverlay p{
+  color:red; margin-top:8px;
+}
+
+/* Header with two logos */
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 16px;
+  background:#fff;
+  border-bottom:4px solid var(--royal-blue);
+}
+.logo{
+  height:60px;
+  width:auto;
+  object-fit:contain;
+}
+.brand{
+  margin:0;
+  font-size:28px;
+  color:var(--royal-blue);
+  letter-spacing:0.5px;
+}
+
+/* Layout */
+.layout{
+  display:flex;
+  gap:16px;
+  padding:16px;
+}
+.quiz-panel{
+  flex:1 1 70%;
+  background:var(--panel);
+  border:2px solid var(--royal-blue);
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.06);
+}
+.scoreboard{
+  flex:0 0 28%;
+  background:#fffdf6;
+  border:2px solid var(--royal-blue);
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.06);
+}
+
+/* Controls / Timer */
+.controls{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  margin-bottom:8px;
+}
+.timer-label input{
+  width:80px;
+  padding:6px 8px;
+  font-size:16px;
+}
+.timer{
+  font-weight:700;
+  font-size:20px;
+}
+.timer.red{ color:#d32f2f; animation: pulse 1s infinite; }
+.timer.orange{ color:var(--pass-orange); }
+@keyframes pulse{ 0%{opacity:1} 50%{opacity:.6} 100%{opacity:1} }
+
+/* Current team */
+.current-team{ font-weight:700; margin:6px 0 10px; }
+.current-team .name{
+  background:var(--gold);
+  padding:3px 8px;
+  border-radius:6px;
+}
+
+/* Question band */
+.question-band{
+  background:var(--royal-blue);
+  border:2px solid var(--royal-blue-dark);
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:12px;
+}
+.question-text{
+  color:#fff;
+  font-weight:800;
+  font-size:28px;
+  line-height:1.3;
+}
+
+/* Options grid */
+.options{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:8px;
+}
+.option{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:64px;
+  border:2px solid var(--royal-blue);
+  border-radius:10px;
+  background:#fff;
+  font-size:18px;
+  font-weight:600;
+  cursor:pointer;
+  padding:10px;
+  transition:transform .05s ease, background .2s ease, border-color .2s ease;
+}
+.option:hover{ background:#e8f1ff }
+.option:disabled{ opacity:.6; cursor:not-allowed }
+
+.option.correct{
+  background:var(--correct);
+  color:#fff;
+  border-color:#1b5e20;
+}
+.option.wrong{
+  background:var(--wrong);
+  color:#fff;
+  border-color:#b71c1c;
+}
+
+/* Image options */
+.option img{
+  max-height:110px;
+  max-width:100%;
+  object-fit:contain;
+  border-radius:6px;
+  display:block;
+}
+
+/* Buttons */
+.action-row{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.btn{
+  border:2px solid var(--royal-blue);
+  background:#e8f1ff;
+  color:#012150;
+  padding:10px 14px;
+  font-weight:700;
+  border-radius:10px;
+  cursor:pointer;
+  min-width:180px;
+}
+.btn:disabled{ opacity:.5; cursor:not-allowed; }
+.btn.primary{ background:var(--gold); border-color:#caa245; }
+
+/* Scoreboard list */
+.team{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 8px;
+  border:1px solid #e6d49a;
+  border-radius:8px;
+  margin-bottom:8px;
+  background:#fff8e1;
+}
+.team.active{ outline:3px solid var(--gold); }
+.team input[type="text"]{
+  flex:1;
+  padding:6px 8px;
+  font-size:14px;
+  border:1px solid #c9b46b;
+  border-radius:6px;
+  background:#fffceb;
+}
+.score{
+  width:70px;
+  text-align:center;
+  font-weight:800;
+  background:#fffbea;
+  border:1px solid #e1cf8a;
+  border-radius:6px;
+  padding:4px 0;
+}
+.team .smallbtn{
+  padding:4px 8px;
+  border:1px solid var(--royal-blue);
+  border-radius:6px;
+  background:#eef5ff;
+  cursor:pointer;
+}
+
+/* Full-screen red flash overlay */
+.timeout-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(211,47,47,0.35);
+  z-index:9999;
+  animation:flash .65s infinite;
+}
+@keyframes flash{ 0%{opacity:.25} 50%{opacity:.6} 100%{opacity:.25} }
+
+/* Responsive */
+@media (max-width: 1000px){
+  .layout{flex-direction:column}
+  .scoreboard{flex-basis:auto}
+  .options{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -78,6 +324,7 @@ enterBtn.addEventListener("click", () => {
   }
 });
 
+/* ------- QUIZ CODE STARTS HERE ------- */
 /********** CONFIG **********/
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRiqqInQm40Eo-MOFDuPOC40etCZdH3Fxnb5ZrZwJk2ziHeIVGOYyQ0xqWKNsL-vw1FxEfYzr7u18fZ/pub?output=csv";
 const LOGO_LEFT  = "https://drive.google.com/uc?export=view&id=1QCjEZ7XRiElI9pBeyCxtfnFLh_xuB4iS";
@@ -196,57 +443,31 @@ function startTimer(seconds){
     }
   },1000);
 }
-
-/* ------- FIXED: Pass/Skip handling ------- */
 function handleAutoPassOrEnd(){
-  if(passCount < 3){
-    passCount++;
-    currentTeam = (currentTeam + 1) % teams.length;
+  if(passCount<3){
+    passCount++; currentTeam=(currentTeam+1)%teams.length;
     updateCurrentTeamDisplay();
-    setTimeout(()=>{
-      overlay.hidden = true;
-      startTimerPass();
-    },500);
-  } else {
-    // All teams skipped → allow moving on
-    clearInterval(timerId);
-    overlay.hidden = true;
-    disableAllOptions();
-    questionCompleted = true;
-    showAnswerBtn.disabled = false;
-    nextBtn.disabled = false;
+    setTimeout(()=>{ overlay.hidden=true; startTimerPass(); },500);
+  }else{
+    disableAllOptions(); showAnswerBtn.disabled=false;
   }
 }
 
 /* ------- Question flow ------- */
 function loadQuestion(){
-  if(qIndex>=questions.length){
-    qText.textContent="Quiz Finished. Great job!";
-    optionsWrap.innerHTML="";
-    showAnswerBtn.disabled=true;
-    nextBtn.disabled=true;
-    return;
-  }
-  currentTeam=startTeamIndex%teams.length; startTeamIndex++;
-  passCount=0; questionCompleted=false; clickedSet.clear();
-  overlay.hidden=true;
+  if(qIndex>=questions.length){ qText.textContent="Quiz Finished. Great job!"; optionsWrap.innerHTML=""; showAnswerBtn.disabled=true; nextBtn.disabled=true; return;}
+  currentTeam=startTeamIndex%teams.length; startTeamIndex++; passCount=0;
+  questionCompleted=false; clickedSet.clear(); overlay.hidden=true;
 
   const q=questions[qIndex];
   qText.textContent=q.question;
   optionsWrap.innerHTML="";
   q.options.forEach((opt,i)=>{
-    const btn=document.createElement("button");
-    btn.className="option";
-    btn.dataset.index=i;
+    const btn=document.createElement("button"); btn.className="option"; btn.dataset.index=i;
     if(isImageUrl(opt)){
       const url=opt.trim().toLowerCase().startsWith("img:")? opt.trim().slice(4).trim() : opt.trim();
-      const img=document.createElement("img");
-      img.src=url;
-      img.alt=`Option ${i+1}`;
-      btn.appendChild(img);
-    } else {
-      btn.textContent=opt;
-    }
+      const img=document.createElement("img"); img.src=url; img.alt=`Option ${i+1}`; btn.appendChild(img);
+    }else{ btn.textContent=opt; }
     btn.addEventListener("click", ()=> handleOptionClick(btn,i));
     optionsWrap.appendChild(btn);
   });
@@ -257,60 +478,33 @@ function loadQuestion(){
 
 function handleOptionClick(btn,i){
   if(questionCompleted) return;
-  clickedSet.add(i);
-  const isCorrect=(i===correctIndex);
+  clickedSet.add(i); const isCorrect=(i===correctIndex);
   if(isCorrect){
-    btn.classList.add("correct");
-    disableAllOptions();
-    clearInterval(timerId);
-    overlay.hidden=true;
+    btn.classList.add("correct"); disableAllOptions(); clearInterval(timerId); overlay.hidden=true;
     const award=PASS_POINTS[Math.min(passCount,PASS_POINTS.length-1)];
-    teams[currentTeam].score+=award;
-    renderTeams();
-    showAnswerBtn.disabled=false;
-  } else {
-    btn.classList.add("wrong");
-    btn.disabled=true;
+    teams[currentTeam].score+=award; renderTeams(); showAnswerBtn.disabled=false;
+  }else{
+    btn.classList.add("wrong"); btn.disabled=true;
     const allDisabled=Array.from(document.querySelectorAll(".option")).every(b=>b.disabled);
-    if(allDisabled){
-      clearInterval(timerId);
-      showAnswerBtn.disabled=false;
-      return;
-    }
-    clearInterval(timerId);
-    handleAutoPassOrEnd();
+    if(allDisabled){ clearInterval(timerId); showAnswerBtn.disabled=false; return;}
+    clearInterval(timerId); handleAutoPassOrEnd();
   }
 }
 
-function disableAllOptions(){
-  document.querySelectorAll(".option").forEach(b=>b.disabled=true);
-}
+function disableAllOptions(){ document.querySelectorAll(".option").forEach(b=>b.disabled=true);}
 showAnswerBtn.addEventListener("click", ()=>{
-  document.querySelectorAll(".option").forEach((b,idx)=>{
-    if(idx===correctIndex) b.classList.add("correct");
-    b.disabled=true;
-  });
-  questionCompleted=true;
-  nextBtn.disabled=false;
-  showAnswerBtn.disabled=true;
+  document.querySelectorAll(".option").forEach((b,idx)=>{ if(idx===correctIndex) b.classList.add("correct"); b.disabled=true; });
+  questionCompleted=true; nextBtn.disabled=false; showAnswerBtn.disabled=true;
 });
-nextBtn.addEventListener("click", ()=>{
-  qIndex++;
-  loadQuestion();
-});
+nextBtn.addEventListener("click", ()=>{ qIndex++; loadQuestion(); });
 
 /* ------- Load CSV ------- */
 fetch(CSV_URL)
   .then(r=>r.text())
   .then(txt=>{
     const rows=csvToRows(txt);
-    questions=rows.slice(1).map(r=>({
-      question:r[0],
-      options:r.slice(1,5),
-      answerIndex:parseInt(r[5],10)
-    }));
-    renderTeams();
-    loadQuestion();
+    questions=rows.slice(1).map(r=>({ question:r[0], options:r.slice(1,5), answerIndex:parseInt(r[5],10) }));
+    renderTeams(); loadQuestion();
   });
 </script>
 </body>

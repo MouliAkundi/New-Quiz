@@ -15,8 +15,10 @@
   --panel:#ffffff;
   --bg:#f3f7ff;
   --pass-orange:#ff7f11;
+  --question-num-color: #ffdd57; /* bold yellow for question number */
 }
 
+/* Reset & base */
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
@@ -26,26 +28,42 @@ body{
   color:var(--text);
 }
 
-/* Header with two logos */
-.header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:10px 16px;
+/* Header with centered logos and editable title */
+.header {
+  text-align:center;
+  padding:12px 16px;
   background:#fff;
   border-bottom:4px solid var(--royal-blue);
 }
-.logo{
-  height:60px;
+.logo-row {
+  display:inline-flex;
+  align-items:center;
+  gap:28px;
+  justify-content:center;
+  margin-bottom:8px;
+}
+.logo {
+  height:90px; /* equal heights */
   width:auto;
   object-fit:contain;
 }
-.brand{
-  margin:0;
-  font-size:28px;
+.title-edit {
+  display:block;
+  margin: 6px auto;
+  font-size:22px;
+  font-weight:800;
   color:var(--royal-blue);
-  letter-spacing:0.5px;
+  background: transparent;
+  border: 2px solid transparent;
+  text-align:center;
+  padding:6px 12px;
+  border-radius:8px;
+  min-width: 280px;
 }
+.title-edit[contenteditable="true"]:focus{
+  outline: 2px dashed #c9d7ff;
+}
+.brand-small { font-size:14px; color:#666; margin-top:4px }
 
 /* Layout */
 .layout{
@@ -76,9 +94,10 @@ body{
   align-items:center;
   gap:16px;
   margin-bottom:8px;
+  flex-wrap:wrap;
 }
 .timer-label input{
-  width:80px;
+  width:90px;
   padding:6px 8px;
   font-size:16px;
 }
@@ -87,7 +106,7 @@ body{
   font-size:20px;
 }
 .timer.red{ color:#d32f2f; animation: pulse 1s infinite; }
-.timer.orange{ color:var(--pass-orange); }
+.timer.orange{ color:var(--pass-orange); animation: pulse 1s infinite; }
 @keyframes pulse{ 0%{opacity:1} 50%{opacity:.6} 100%{opacity:1} }
 
 /* Current team */
@@ -105,6 +124,17 @@ body{
   border-radius:12px;
   padding:16px;
   margin-bottom:12px;
+  display:flex;
+  gap:16px;
+  align-items:center;
+}
+.question-num {
+  color:var(--question-num-color);
+  font-weight:900;
+  font-size:20px;
+  padding:6px 10px;
+  border-radius:6px;
+  background: rgba(0,0,0,0.08);
 }
 .question-text{
   color:#fff;
@@ -222,6 +252,9 @@ body{
   background:rgba(211,47,47,0.35);
   z-index:9999;
   animation:flash .65s infinite;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 @keyframes flash{ 0%{opacity:.25} 50%{opacity:.6} 100%{opacity:.25} }
 
@@ -235,13 +268,19 @@ body{
 </head>
 <body>
   <!-- Full-screen red flash when time hits 0 -->
-  <div id="timeout-overlay" class="timeout-overlay" hidden></div>
+  <div id="timeout-overlay" class="timeout-overlay" hidden>
+    <div style="font-size:28px; color:white; font-weight:900">TIME'S UP</div>
+  </div>
 
-  <!-- Header with your two logos -->
+  <!-- Header: centered logos + editable title -->
   <header class="header">
-    <img id="logoLeft" class="logo" alt="Logo 1" />
-    <h1 class="brand">College Quiz</h1>
-    <img id="logoRight" class="logo" alt="Logo 2" />
+    <div class="logo-row" aria-hidden="true">
+      <img id="logoLeft" class="logo" alt="Logo 1" />
+      <img id="logoRight" class="logo" alt="Logo 2" />
+    </div>
+
+    <div contenteditable="true" id="quizTitle" class="title-edit" role="textbox" aria-label="Quiz title">Inter-College Quiz 2025</div>
+    <div class="brand-small">(Click the title to edit it)</div>
   </header>
 
   <main class="layout">
@@ -249,7 +288,7 @@ body{
     <section class="quiz-panel">
       <div class="controls">
         <label class="timer-label">
-          Timer (sec):
+          Main Timer (sec):
           <input type="number" id="timerInput" min="5" value="30" />
         </label>
         <div class="timer">Time Left: <span id="time">30</span>s</div>
@@ -259,11 +298,12 @@ body{
 
       <!-- Royal blue question band -->
       <div class="question-band">
+        <div class="question-num" id="questionNum">Q1</div>
         <div id="question" class="question-text">Loading question…</div>
       </div>
 
       <!-- Options -->
-      <div id="options" class="options"></div>
+      <div id="options" class="options" aria-live="polite"></div>
 
       <div class="action-row">
         <button id="showAnswerBtn" class="btn" disabled>Show Correct Answer</button>
@@ -273,25 +313,23 @@ body{
 
     <!-- Scoreboard -->
     <aside class="scoreboard">
-      <h2>Leaderboard</h2>
+      <h2>Leaderboard (editable)</h2>
       <div id="teams"></div>
     </aside>
   </main>
 
 <script>
 /********** CONFIG **********/
-/* Google Sheet CSV (must have header: Question,Option1,Option2,Option3,Option4,Answer) */
+/* Google Sheet CSV link (must be published as CSV: .../pub?output=csv) */
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRiqqInQm40Eo-MOFDuPOC40etCZdH3Fxnb5ZrZwJk2ziHeIVGOYyQ0xqWKNsL-vw1FxEfYzr7u18fZ/pub?output=csv";
 
-/* Two logos (converted to direct-view links) */
+/* Direct-view logos from your Drive (converted) */
 const LOGO_LEFT  = "https://drive.google.com/uc?export=view&id=1QCjEZ7XRiElI9pBeyCxtfnFLh_xuB4iS";
 const LOGO_RIGHT = "https://drive.google.com/uc?export=view&id=1xKpU5akmap9vLgxtVyL0HMX1bsKUQdFl";
 
 /* Scoring by pass number: 0th=4, 1st=3, 2nd=2, 3rd=1 */
 const PASS_POINTS = [4,3,2,1];
-
-/* Pass timer fixed 5s */
-const PASS_SECONDS = 5;
+const PASS_SECONDS = 5; // fixed pass timer
 /****************************/
 
 /* ------- DOM refs ------- */
@@ -305,10 +343,12 @@ const overlay = document.getElementById("timeout-overlay");
 
 const currentTeamEl = document.getElementById("currentTeam");
 const qText = document.getElementById("question");
+const qNumEl = document.getElementById("questionNum");
 const optionsWrap = document.getElementById("options");
 const showAnswerBtn = document.getElementById("showAnswerBtn");
 const nextBtn = document.getElementById("nextBtn");
 const teamsWrap = document.getElementById("teams");
+const titleEl = document.getElementById("quizTitle");
 
 /* ------- State ------- */
 let questions = []; // { question, options:[4], answerIndex }
@@ -321,9 +361,9 @@ let teams = [
   { name:"Team D", score:0 },
 ];
 
-let startTeamIndex = 0; // rotates each question A->B->C->D...
-let currentTeam = 0;    // current turn holder
-let passCount = 0;      // 0 (direct), 1, 2, 3
+let startTeamIndex = 0; // rotates starting team per question
+let currentTeam = 0;    // whose turn it is now
+let passCount = 0;      // 0 = direct, 1 = first pass, etc.
 
 let timerId = null;
 let timeLeft = 30;
@@ -335,7 +375,6 @@ let questionCompleted = false;
 
 /* ------- Utils ------- */
 function csvToRows(csvText){
-  // Simple CSV parser handling quotes
   const rows = [];
   let row = [], cell = "", inQuotes = false;
   for (let i=0;i<csvText.length;i++){
@@ -345,7 +384,9 @@ function csvToRows(csvText){
       else inQuotes = !inQuotes;
     }else if (c === ',' && !inQuotes){
       row.push(cell); cell = "";
-    }else if (c === '\n' && !inQuotes){
+    }else if ((c === '\n' || c === '\r') && !inQuotes){
+      // handle \r\n or \n
+      if (c === '\r' && csvText[i+1] === '\n'){ continue; }
       row.push(cell); rows.push(row);
       row = []; cell = "";
     }else{
@@ -376,15 +417,18 @@ function renderTeams(){
       <button class="smallbtn" data-i="${idx}" data-delta="5">+5</button>
       <button class="smallbtn" data-i="${idx}" data-delta="-5">-5</button>
     `;
+    // name edit
     row.querySelector("input").addEventListener("change", e=>{
       teams[idx].name = e.target.value.trim() || `Team ${idx+1}`;
       updateCurrentTeamDisplay();
     });
+    // score edit
     const scoreCell = row.querySelector(".score");
     scoreCell.addEventListener("input", ()=>{
       const val = parseInt(scoreCell.innerText.replace(/[^\d-]/g,"")) || 0;
       teams[idx].score = val;
     });
+    // small buttons
     row.querySelectorAll(".smallbtn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const i = +btn.dataset.i;
@@ -424,14 +468,12 @@ function startTimer(seconds){
     timeEl.textContent = timeLeft;
 
     if (!isPassTurn){
-      // Main timer styling
       if (timeLeft <= 10 && timeLeft > 0){
         timerBox.classList.add("red");
       }else{
         timerBox.classList.remove("red");
       }
     }else{
-      // Pass timer styling
       if (timeLeft <= 3 && timeLeft > 0){
         timerBox.classList.add("orange");
       }else{
@@ -444,59 +486,44 @@ function startTimer(seconds){
       // full-screen red flash
       overlay.hidden = false;
 
-      if (!isPassTurn){
-        // Main time over -> first pass to next team
-        handleAutoPassOrEnd();
+      // If there are passes remaining -> go to next pass
+      if (passCount < 3){
+        passCount++;
+        currentTeam = (currentTeam + 1) % teams.length;
+        updateCurrentTeamDisplay();
+        // short delay to show overlay, then continue with pass timer
+        setTimeout(()=>{ overlay.hidden = true; startTimerPass(); }, 600);
       }else{
-        // Pass time over -> next pass (or end after last)
-        handleAutoPassOrEnd();
+        // last pass expired: enable Show Correct Answer so host can reveal and move on
+        disableAllOptions();
+        showAnswerBtn.disabled = false;
       }
     }
   }, 1000);
 }
 
-/* When time runs out OR a wrong answer happens */
-function handleAutoPassOrEnd(){
-  // If we still have passes left (0->1->2->3)
-  if (passCount < 3){
-    passCount++;
-    currentTeam = (currentTeam + 1) % teams.length;
-    updateCurrentTeamDisplay();
-    // briefly show flash then continue
-    setTimeout(()=>{
-      overlay.hidden = true;
-      startTimerPass();
-    }, 500);
-  }else{
-    // Last pass expired: lock the question & allow show answer
-    disableAllOptions();
-    showAnswerBtn.disabled = false;
-  }
-}
-
 /* ------- Question flow ------- */
 function loadQuestion(){
   if (qIndex >= questions.length){
-    qText.textContent = "Quiz Finished. Great job!";
+    qText.textContent = "Quiz Finished — well done!";
     optionsWrap.innerHTML = "";
     showAnswerBtn.disabled = true;
     nextBtn.disabled = true;
     return;
   }
 
-  // Set starting team for this question and reset pass
+  // set starting team for this question and rotate baseline for next Q
   currentTeam = startTeamIndex % teams.length;
-  startTeamIndex++; // rotate for next question
+  startTeamIndex++;
   passCount = 0;
 
-  // Reset state
   questionCompleted = false;
   clickedSet.clear();
   overlay.hidden = true;
 
-  // Render question & options
   const q = questions[qIndex];
   qText.textContent = q.question;
+  qNumEl.textContent = `Q${qIndex+1}`;
 
   optionsWrap.innerHTML = "";
   q.options.forEach((opt, i)=>{
@@ -522,9 +549,9 @@ function loadQuestion(){
 
   correctIndex = q.answerIndex;
 
-  // Controls
-  nextBtn.disabled = true;
+  // control states
   showAnswerBtn.disabled = true;
+  nextBtn.disabled = true;
 
   updateCurrentTeamDisplay();
   startTimerMain();
@@ -537,7 +564,7 @@ function handleOptionClick(btn, i){
   const isCorrect = (i === correctIndex);
 
   if (isCorrect){
-    // Mark green, lock all options, award points based on passCount
+    // correct: highlight, award marks according to passCount
     btn.classList.add("correct");
     disableAllOptions();
     clearInterval(timerId);
@@ -545,14 +572,14 @@ function handleOptionClick(btn, i){
     const award = PASS_POINTS[Math.min(passCount, PASS_POINTS.length-1)];
     teams[currentTeam].score += award;
     renderTeams();
-    // Allow showing the official correct answer (then Next)
+    // enable show answer so host can officially reveal (even though correct is already green)
     showAnswerBtn.disabled = false;
   }else{
-    // Mark red, disable this wrong choice, auto-pass to next team
+    // wrong: mark red, disable that option, auto-pass to next team
     btn.classList.add("wrong");
     btn.disabled = true;
 
-    // If that was the last remaining option, allow Show Answer
+    // If all four options disabled (i.e., exhausted), allow show answer
     const allDisabled = Array.from(document.querySelectorAll(".option")).every(b=>b.disabled);
     if (allDisabled){
       clearInterval(timerId);
@@ -560,9 +587,24 @@ function handleOptionClick(btn, i){
       return;
     }
 
-    // Wrong -> pass to next team (or end if last pass already used)
+    // Otherwise, pass to next team (or if we're already at last pass, enable show answer)
     clearInterval(timerId);
-    handleAutoPassOrEnd();
+    if (passCount < 3){
+      passCount++;
+      currentTeam = (currentTeam + 1) % teams.length;
+      updateCurrentTeamDisplay();
+      // short overlay to show pass
+      setTimeout(()=>{ overlay.hidden = true; startTimerPass(); }, 400);
+    }else{
+      // last pass used -> enable show answer
+      disableAllOptions();
+      showAnswerBtn.disabled = false;
+    }
+  }
+
+  // If user has clicked all 4 options at least once, enable Show Answer
+  if (clickedSet.size >= 4){
+    showAnswerBtn.disabled = false;
   }
 }
 
@@ -573,11 +615,11 @@ function disableAllOptions(){
 /* Show correct → then enable Next */
 showAnswerBtn.addEventListener("click", ()=>{
   document.querySelectorAll(".option").forEach((b, idx)=>{
-    if (idx === correctIndex) b.classList.add("correct"); // ensure correct is green
+    if (idx === correctIndex) b.classList.add("correct");
     b.disabled = true;
   });
   questionCompleted = true;
-  nextBtn.disabled = false;  // only now Next is enabled
+  nextBtn.disabled = false;
   showAnswerBtn.disabled = true;
 });
 
@@ -588,42 +630,48 @@ nextBtn.addEventListener("click", ()=>{
 
 /* ------- Data load ------- */
 async function loadCSV(){
-  const res = await fetch(CSV_URL);
-  const text = await res.text();
-  const rows = csvToRows(text);
-  // Expected header
-  const header = rows[0].map(h=>h.trim().toLowerCase());
-  const qi = header.indexOf("question");
-  const a1 = header.indexOf("option1");
-  const a2 = header.indexOf("option2");
-  const a3 = header.indexOf("option3");
-  const a4 = header.indexOf("option4");
-  const ans = header.indexOf("answer");
+  try{
+    const res = await fetch(CSV_URL);
+    const text = await res.text();
+    const rows = csvToRows(text);
+    const header = rows[0].map(h=>h.trim().toLowerCase());
+    const qi = header.indexOf("question");
+    const a1 = header.indexOf("option1");
+    const a2 = header.indexOf("option2");
+    const a3 = header.indexOf("option3");
+    const a4 = header.indexOf("option4");
+    const ans = header.indexOf("answer");
 
-  questions = rows.slice(1).filter(r=>r.length && r[qi]).map(r=>{
-    const opts = [r[a1], r[a2], r[a3], r[a4]].map(x=> (x||"").trim());
-    const answerText = (r[ans]||"").trim();
-    // Answer can be the exact option text OR a number 1–4
-    let answerIndex = -1;
-    const n = parseInt(answerText,10);
-    if (!Number.isNaN(n) && n>=1 && n<=4) answerIndex = n-1;
-    else answerIndex = opts.findIndex(o=> o === answerText);
-    if (answerIndex < 0) answerIndex = 0; // fallback
-    return { question:r[qi], options:opts, answerIndex };
-  });
+    questions = rows.slice(1).filter(r=>r.length && r[qi]).map(r=>{
+      const opts = [r[a1], r[a2], r[a3], r[a4]].map(x=> (x||"").trim());
+      const answerText = (r[ans]||"").trim();
+      let answerIndex = -1;
+      const n = parseInt(answerText,10);
+      if (!Number.isNaN(n) && n>=1 && n<=4) answerIndex = n-1;
+      else answerIndex = opts.findIndex(o=> o === answerText);
+      if (answerIndex < 0) answerIndex = 0;
+      return { question:r[qi], options:opts, answerIndex };
+    });
+  }catch(e){
+    console.error("CSV load failed", e);
+    qText.textContent = "Failed to load questions — check CSV URL.";
+  }
 }
 
 /* ------- Init ------- */
 function init(){
   renderTeams();
   updateCurrentTeamDisplay();
-  loadCSV().then(loadQuestion);
+  loadCSV().then(()=>{ loadQuestion(); });
 
   // Keep timer sane
   timerInput.addEventListener("change", ()=>{
     const v = parseInt(timerInput.value,10);
     if (isNaN(v) || v<5) timerInput.value = 5;
   });
+
+  // allow editing title visually (already contenteditable)
+  titleEl.addEventListener("input", ()=>{ /* nothing else needed */ });
 }
 init();
 </script>

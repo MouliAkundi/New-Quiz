@@ -1,0 +1,244 @@
+:root{
+  --royal-blue:#0b3d91;
+  --royal-blue-dark:#072a65;
+  --gold:#ffd166;
+  --text:#0b1b2b;
+  --wrong:#d32f2f;
+  --correct:#2e7d32;
+  --panel:#ffffff;
+  --bg:#f3f7ff;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+/* Header with two logos */
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 16px;
+  background:#fff;
+  border-bottom:4px solid var(--royal-blue);
+}
+.logo{
+  height:60px;
+  width:auto;
+  object-fit:contain;
+}
+.brand{
+  margin:0;
+  font-size:28px;
+  color:var(--royal-blue);
+  letter-spacing:0.5px;
+}
+
+/* Layout */
+.layout{
+  display:flex;
+  gap:16px;
+  padding:16px;
+}
+.quiz-panel{
+  flex:1 1 70%;
+  background:var(--panel);
+  border:2px solid var(--royal-blue);
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.06);
+}
+.scoreboard{
+  flex:0 0 28%;
+  background:#fffdf6;
+  border:2px solid var(--royal-blue);
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.06);
+}
+
+/* Controls / Timer */
+.controls{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  margin-bottom:8px;
+}
+.timer-label input{
+  width:80px;
+  padding:6px 8px;
+  font-size:16px;
+}
+.timer{
+  font-weight:700;
+  font-size:20px;
+}
+.timer.red{
+  color:#d32f2f;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse{
+  0%{opacity:1}
+  50%{opacity:.6}
+  100%{opacity:1}
+}
+
+/* Current team */
+.current-team{
+  font-weight:700;
+  margin:6px 0 10px;
+}
+.current-team .name{
+  background:var(--gold);
+  padding:3px 8px;
+  border-radius:6px;
+}
+
+/* Question band: royal blue background, white bold text */
+.question-band{
+  background:var(--royal-blue);
+  border:2px solid var(--royal-blue-dark);
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:12px;
+}
+.question-text{
+  color:#fff;
+  font-weight:800;
+  font-size:28px;
+  line-height:1.3;
+}
+
+/* Options grid */
+.options{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:8px;
+}
+.option{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:64px;
+  border:2px solid var(--royal-blue);
+  border-radius:10px;
+  background:#fff;
+  font-size:18px;
+  font-weight:600;
+  cursor:pointer;
+  padding:10px;
+  transition:transform .05s ease, background .2s ease, border-color .2s ease;
+}
+.option:hover{ background:#e8f1ff }
+.option:disabled{ opacity:.6; cursor:not-allowed }
+
+.option.correct{
+  background:var(--correct);
+  color:#fff;
+  border-color:#1b5e20;
+}
+.option.wrong{
+  background:var(--wrong);
+  color:#fff;
+  border-color:#b71c1c;
+}
+
+/* Image options */
+.option img{
+  max-height:110px;
+  max-width:100%;
+  object-fit:contain;
+  border-radius:6px;
+  display:block;
+}
+
+/* Buttons */
+.action-row{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+}
+.btn{
+  border:2px solid var(--royal-blue);
+  background:#e8f1ff;
+  color:#012150;
+  padding:10px 14px;
+  font-weight:700;
+  border-radius:10px;
+  cursor:pointer;
+  min-width:180px;
+}
+.btn:disabled{
+  opacity:.5; cursor:not-allowed;
+}
+.btn.primary{
+  background:var(--gold);
+  border-color:#caa245;
+}
+
+/* Scoreboard list */
+.team{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 8px;
+  border:1px solid #e6d49a;
+  border-radius:8px;
+  margin-bottom:8px;
+  background:#fff8e1;
+}
+.team.active{
+  outline:3px solid var(--gold);
+}
+.team input[type="text"]{
+  flex:1;
+  padding:6px 8px;
+  font-size:14px;
+  border:1px solid #c9b46b;
+  border-radius:6px;
+  background:#fffceb;
+}
+.score{
+  width:70px;
+  text-align:center;
+  font-weight:800;
+  background:#fffbea;
+  border:1px solid #e1cf8a;
+  border-radius:6px;
+  padding:4px 0;
+}
+.team .smallbtn{
+  padding:4px 8px;
+  border:1px solid var(--royal-blue);
+  border-radius:6px;
+  background:#eef5ff;
+  cursor:pointer;
+}
+
+/* Entire screen red at 0 seconds */
+.timeout-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(211,47,47,0.35);
+  z-index:9999;
+  animation:flash .65s infinite;
+}
+@keyframes flash{
+  0%{opacity:.25}
+  50%{opacity:.6}
+  100%{opacity:.25}
+}
+
+/* Responsive */
+@media (max-width: 1000px){
+  .layout{flex-direction:column}
+  .scoreboard{flex-basis:auto}
+  .options{grid-template-columns:1fr}
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>College Quiz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="style.css" rel="stylesheet" />
+</head>
+<body>
+  <!-- Full-screen red flash at time = 0 -->
+  <div id="timeout-overlay" class="timeout-overlay" hidden></div>
+
+  <!-- Top header with two logos -->
+  <header class="header">
+    <img id="logoLeft" class="logo" alt="Logo 1" />
+    <h1 class="brand">College Quiz</h1>
+    <img id="logoRight" class="logo" alt="Logo 2" />
+  </header>
+
+  <main class="layout">
+    <!-- Left: quiz panel -->
+    <section class="quiz-panel">
+      <div class="controls">
+        <label class="timer-label">
+          Timer (sec):
+          <input type="number" id="timerInput" min="5" value="30" />
+        </label>
+        <div class="timer">Time Left: <span id="time">30</span>s</div>
+      </div>
+
+      <div id="currentTeam" class="current-team"></div>
+
+      <!-- Royal blue question band with white bold text -->
+      <div class="question-band">
+        <div id="question" class="question-text">Loading question…</div>
+      </div>
+
+      <!-- Options (text or image) -->
+      <div id="options" class="options"></div>
+
+      <!-- Control buttons: strict flow Show Answer -> Next -->
+      <div class="action-row">
+        <button id="showAnswerBtn" class="btn" disabled>Show Correct Answer</button>
+        <button id="nextBtn" class="btn primary" disabled>Next Question</button>
+      </div>
+    </section>
+
+    <!-- Right: real-time editable leaderboard -->
+    <aside class="scoreboard">
+      <h2>Leaderboard</h2>
+      <div id="teams"></div>
+    </aside>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -326,23 +326,16 @@ enterBtn.addEventListener("click", () => {
 
 /* ------- QUIZ CODE STARTS HERE ------- */
 /********** CONFIG **********/
-function getDirectDriveLink(url) {
-    const match = url.match(/\/d\/(.*?)\//);
-    if (match && match[1]) {
-        return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-    }
-    return url; // Return original if not a Drive link
-}
 
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRiqqInQm40Eo-MOFDuPOC40etCZdH3Fxnb5ZrZwJk2ziHeIVGOYyQ0xqWKNsL-vw1FxEfYzr7u18fZ/pub?output=csv";
-const LOGO_LEFT  = "https://drive.usercontent.google.com/download?id=1QCjEZ7XRiElI9pBeyCxtfnFLh_xuB4iS&export=view&authuser=0";
-const LOGO_RIGHT = "https://drive.usercontent.google.com/download?id=1xKpU5akmap9vLgxtVyL0HMX1bsKUQdFl&export=view&authuser=0";
+const LOGO_LEFT  = "https://github.com/MouliAkundi/New-Quiz/blob/46a5e9733af88c49ee5467ec1661cea3b34af09a/images/logo1.jpg";
+const LOGO_RIGHT = "https://github.com/MouliAkundi/New-Quiz/blob/46a5e9733af88c49ee5467ec1661cea3b34af09a/images/logo2.jpg";
 const PASS_POINTS = [4,3,2,1];
 const PASS_SECONDS = 5;
 
 /* ------- DOM refs ------- */
-document.getElementById("logoLeft").src = getDirectDriveLink(LOGO_LEFT);
-document.getElementById("logoRight").src = getDirectDriveLink(LOGO_RIGHT);
+document.getElementById("logoLeft").src = LOGO_LEFT;
+document.getElementById("logoRight").src = LOGO_RIGHT;
 
 const timerInput = document.getElementById("timerInput");
 const timeEl = document.getElementById("time");
@@ -527,6 +520,7 @@ fetch(CSV_URL)
 </script>
 </body>
 </html>
+
 
 
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>College Quiz</title>
+<title>College Quiz — Projector Mode</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
 :root{
@@ -15,7 +15,7 @@
   --panel:#ffffff;
   --bg:#f3f7ff;
   --pass-orange:#ff7f11;
-  --question-num-color: #ffdd57; /* bold yellow for question number */
+  --question-num-color:#ffdd57;
 }
 
 /* Reset & base */
@@ -31,7 +31,7 @@ body{
 /* Header with centered logos and editable title */
 .header {
   text-align:center;
-  padding:12px 16px;
+  padding:10px 16px;
   background:#fff;
   border-bottom:4px solid var(--royal-blue);
 }
@@ -63,7 +63,7 @@ body{
 .title-edit[contenteditable="true"]:focus{
   outline: 2px dashed #c9d7ff;
 }
-.brand-small { font-size:14px; color:#666; margin-top:4px }
+.brand-small { font-size:13px; color:#666; margin-top:4px }
 
 /* Layout */
 .layout{
@@ -109,12 +109,14 @@ body{
 .timer.orange{ color:var(--pass-orange); animation: pulse 1s infinite; }
 @keyframes pulse{ 0%{opacity:1} 50%{opacity:.6} 100%{opacity:1} }
 
-/* Current team */
-.current-team{ font-weight:700; margin:6px 0 10px; }
+/* Current team (big center display) */
+.current-team{ font-weight:900; margin:10px 0; font-size:22px; text-align:center; }
 .current-team .name{
   background:var(--gold);
-  padding:3px 8px;
-  border-radius:6px;
+  padding:6px 12px;
+  border-radius:8px;
+  font-size:22px;
+  display:inline-block;
 }
 
 /* Question band */
@@ -127,6 +129,7 @@ body{
   display:flex;
   gap:16px;
   align-items:center;
+  flex-wrap:wrap;
 }
 .question-num {
   color:var(--question-num-color);
@@ -245,6 +248,9 @@ body{
   cursor:pointer;
 }
 
+/* Volume control */
+.volume-row{ display:flex; gap:8px; align-items:center; margin-left:8px; }
+
 /* Full-screen red flash overlay */
 .timeout-overlay{
   position:fixed;
@@ -255,6 +261,7 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
+  pointer-events:none;
 }
 @keyframes flash{ 0%{opacity:.25} 50%{opacity:.6} 100%{opacity:.25} }
 
@@ -291,10 +298,16 @@ body{
           Main Timer (sec):
           <input type="number" id="timerInput" min="5" value="30" />
         </label>
+
         <div class="timer">Time Left: <span id="time">30</span>s</div>
+
+        <div class="volume-row">
+          Volume:
+          <input id="volumeSlider" type="range" min="0" max="1" step="0.05" value="0.5" />
+        </div>
       </div>
 
-      <div id="currentTeam" class="current-team"></div>
+      <div id="currentTeamBig" class="current-team"><span class="name">Team A</span></div>
 
       <!-- Royal blue question band -->
       <div class="question-band">
@@ -320,10 +333,10 @@ body{
 
 <script>
 /********** CONFIG **********/
-/* Google Sheet CSV link (must be published as CSV: .../pub?output=csv) */
+/* Put your published CSV URL here (Google Sheet → Publish → CSV) */
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRiqqInQm40Eo-MOFDuPOC40etCZdH3Fxnb5ZrZwJk2ziHeIVGOYyQ0xqWKNsL-vw1FxEfYzr7u18fZ/pub?output=csv";
 
-/* Direct-view logos from your Drive (converted) */
+/* Direct-view logos from your Drive (converted earlier) — replace if needed */
 const LOGO_LEFT  = "https://drive.google.com/uc?export=view&id=1QCjEZ7XRiElI9pBeyCxtfnFLh_xuB4iS";
 const LOGO_RIGHT = "https://drive.google.com/uc?export=view&id=1xKpU5akmap9vLgxtVyL0HMX1bsKUQdFl";
 
@@ -341,7 +354,7 @@ const timeEl = document.getElementById("time");
 const timerBox = document.querySelector(".timer");
 const overlay = document.getElementById("timeout-overlay");
 
-const currentTeamEl = document.getElementById("currentTeam");
+const currentTeamBig = document.getElementById("currentTeamBig");
 const qText = document.getElementById("question");
 const qNumEl = document.getElementById("questionNum");
 const optionsWrap = document.getElementById("options");
@@ -349,6 +362,7 @@ const showAnswerBtn = document.getElementById("showAnswerBtn");
 const nextBtn = document.getElementById("nextBtn");
 const teamsWrap = document.getElementById("teams");
 const titleEl = document.getElementById("quizTitle");
+const volumeSlider = document.getElementById("volumeSlider");
 
 /* ------- State ------- */
 let questions = []; // { question, options:[4], answerIndex }
@@ -373,6 +387,53 @@ let clickedSet = new Set();
 let correctIndex = -1;
 let questionCompleted = false;
 
+/* ------- Audio (WebAudio synthesized beeps) ------- */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let masterGain = audioCtx.createGain();
+masterGain.gain.value = Number(volumeSlider.value);
+masterGain.connect(audioCtx.destination);
+
+volumeSlider.addEventListener('input', ()=>{ masterGain.gain.value = Number(volumeSlider.value); });
+
+// play a short beep
+function playBeep(freq=880, duration=0.12, type='sine'){
+  try{
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.value = 0.001;
+    o.connect(g);
+    g.connect(masterGain);
+    const now = audioCtx.currentTime;
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.exponentialRampToValueAtTime(0.5, now + 0.01);
+    o.start(now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    o.stop(now + duration + 0.02);
+  }catch(e){ console.warn("Audio failed", e); }
+}
+
+// play buzzer (longer)
+function playBuzzer(){
+  try{
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.value = 220;
+    o.connect(g);
+    g.connect(masterGain);
+    const now = audioCtx.currentTime;
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.exponentialRampToValueAtTime(0.6, now + 0.02);
+    o.start(now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+    o.frequency.setValueAtTime(220, now);
+    o.frequency.exponentialRampToValueAtTime(80, now + 0.9);
+    o.stop(now + 1.0);
+  }catch(e){ console.warn("Audio failed", e); }
+}
+
 /* ------- Utils ------- */
 function csvToRows(csvText){
   const rows = [];
@@ -385,7 +446,6 @@ function csvToRows(csvText){
     }else if (c === ',' && !inQuotes){
       row.push(cell); cell = "";
     }else if ((c === '\n' || c === '\r') && !inQuotes){
-      // handle \r\n or \n
       if (c === '\r' && csvText[i+1] === '\n'){ continue; }
       row.push(cell); rows.push(row);
       row = []; cell = "";
@@ -441,7 +501,9 @@ function renderTeams(){
   });
 }
 function updateCurrentTeamDisplay(){
-  currentTeamEl.innerHTML = `Current Team: <span class="name">${teams[currentTeam].name}</span> (Pass ${passCount})`;
+  // big center name
+  currentTeamBig.innerHTML = `<span class="name">${teams[currentTeam].name}</span>`;
+  // also update small scoreboard highlights
   document.querySelectorAll(".team").forEach((el,i)=>{
     el.classList.toggle("active", i===currentTeam);
   });
@@ -463,38 +525,47 @@ function startTimer(seconds){
   timeLeft = seconds;
   timeEl.textContent = timeLeft;
 
+  // ensure we initialize timeLeft first, then start ticking (prevents immediate 0)
   timerId = setInterval(()=>{
     timeLeft--;
     timeEl.textContent = timeLeft;
 
-    if (!isPassTurn){
+    // urgent beeps and styles
+    if (isPassTurn){
+      if (timeLeft <= 3 && timeLeft > 0){
+        timerBox.classList.add("orange");
+        if (timeLeft === 3) playBeep(1200, 0.07, 'sine');
+      } else {
+        timerBox.classList.remove("orange");
+      }
+    } else {
       if (timeLeft <= 10 && timeLeft > 0){
         timerBox.classList.add("red");
       }else{
         timerBox.classList.remove("red");
       }
-    }else{
       if (timeLeft <= 3 && timeLeft > 0){
-        timerBox.classList.add("orange");
-      }else{
-        timerBox.classList.remove("orange");
+        if (timeLeft === 3) playBeep(1200, 0.07, 'sine');
       }
     }
 
     if (timeLeft <= 0){
       clearInterval(timerId);
-      // full-screen red flash
       overlay.hidden = false;
+      playBuzzer();
 
-      // If there are passes remaining -> go to next pass
+      // If passes remain -> pass automatically
       if (passCount < 3){
         passCount++;
         currentTeam = (currentTeam + 1) % teams.length;
         updateCurrentTeamDisplay();
-        // short delay to show overlay, then continue with pass timer
-        setTimeout(()=>{ overlay.hidden = true; startTimerPass(); }, 600);
+        setTimeout(()=>{
+          overlay.hidden = true;
+          playBeep(1000,0.09,'sine');
+          startTimerPass();
+        }, 700);
       }else{
-        // last pass expired: enable Show Correct Answer so host can reveal and move on
+        // last pass expired
         disableAllOptions();
         showAnswerBtn.disabled = false;
       }
@@ -512,7 +583,7 @@ function loadQuestion(){
     return;
   }
 
-  // set starting team for this question and rotate baseline for next Q
+  // starting team rotates per question
   currentTeam = startTeamIndex % teams.length;
   startTeamIndex++;
   passCount = 0;
@@ -530,11 +601,10 @@ function loadQuestion(){
     const btn = document.createElement("button");
     btn.className = "option";
     btn.dataset.index = i;
+    btn.type = "button";
 
     if (isImageUrl(opt)){
-      const url = opt.trim().toLowerCase().startsWith("img:")
-        ? opt.trim().slice(4).trim()
-        : opt.trim();
+      const url = opt.trim().toLowerCase().startsWith("img:") ? opt.trim().slice(4).trim() : opt.trim();
       const img = document.createElement("img");
       img.src = url;
       img.alt = `Option ${i+1}`;
@@ -549,12 +619,14 @@ function loadQuestion(){
 
   correctIndex = q.answerIndex;
 
-  // control states
+  // controls
   showAnswerBtn.disabled = true;
   nextBtn.disabled = true;
 
+  renderTeams();
   updateCurrentTeamDisplay();
-  startTimerMain();
+  // Start main timer after a tiny delay so it never reads 0 immediately
+  setTimeout(()=> startTimerMain(), 80);
 }
 
 function handleOptionClick(btn, i){
@@ -564,7 +636,6 @@ function handleOptionClick(btn, i){
   const isCorrect = (i === correctIndex);
 
   if (isCorrect){
-    // correct: highlight, award marks according to passCount
     btn.classList.add("correct");
     disableAllOptions();
     clearInterval(timerId);
@@ -572,14 +643,13 @@ function handleOptionClick(btn, i){
     const award = PASS_POINTS[Math.min(passCount, PASS_POINTS.length-1)];
     teams[currentTeam].score += award;
     renderTeams();
-    // enable show answer so host can officially reveal (even though correct is already green)
     showAnswerBtn.disabled = false;
+    playBeep(1400,0.14,'triangle');
   }else{
-    // wrong: mark red, disable that option, auto-pass to next team
     btn.classList.add("wrong");
     btn.disabled = true;
+    playBeep(240,0.12,'sine');
 
-    // If all four options disabled (i.e., exhausted), allow show answer
     const allDisabled = Array.from(document.querySelectorAll(".option")).every(b=>b.disabled);
     if (allDisabled){
       clearInterval(timerId);
@@ -587,22 +657,21 @@ function handleOptionClick(btn, i){
       return;
     }
 
-    // Otherwise, pass to next team (or if we're already at last pass, enable show answer)
     clearInterval(timerId);
     if (passCount < 3){
       passCount++;
       currentTeam = (currentTeam + 1) % teams.length;
       updateCurrentTeamDisplay();
-      // short overlay to show pass
-      setTimeout(()=>{ overlay.hidden = true; startTimerPass(); }, 400);
+      setTimeout(()=>{
+        playBeep(1000,0.09,'sine');
+        startTimerPass();
+      }, 300);
     }else{
-      // last pass used -> enable show answer
       disableAllOptions();
       showAnswerBtn.disabled = false;
     }
   }
 
-  // If user has clicked all 4 options at least once, enable Show Answer
   if (clickedSet.size >= 4){
     showAnswerBtn.disabled = false;
   }
@@ -634,6 +703,7 @@ async function loadCSV(){
     const res = await fetch(CSV_URL);
     const text = await res.text();
     const rows = csvToRows(text);
+    if (!rows || rows.length < 2) throw new Error("No rows");
     const header = rows[0].map(h=>h.trim().toLowerCase());
     const qi = header.indexOf("question");
     const a1 = header.indexOf("option1");
@@ -641,7 +711,6 @@ async function loadCSV(){
     const a3 = header.indexOf("option3");
     const a4 = header.indexOf("option4");
     const ans = header.indexOf("answer");
-
     questions = rows.slice(1).filter(r=>r.length && r[qi]).map(r=>{
       const opts = [r[a1], r[a2], r[a3], r[a4]].map(x=> (x||"").trim());
       const answerText = (r[ans]||"").trim();
@@ -670,8 +739,8 @@ function init(){
     if (isNaN(v) || v<5) timerInput.value = 5;
   });
 
-  // allow editing title visually (already contenteditable)
-  titleEl.addEventListener("input", ()=>{ /* nothing else needed */ });
+  // ensure audio context resume on user gesture (some browsers block)
+  document.addEventListener('click', ()=>{ if (audioCtx.state === 'suspended') audioCtx.resume(); }, { once:true });
 }
 init();
 </script>

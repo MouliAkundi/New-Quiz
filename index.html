@@ -444,19 +444,25 @@ function startTimer(seconds){
   },1000);
 }
 function handleAutoPassOrEnd(){
-  if(passCount<3){
-    passCount++; currentTeam=(currentTeam+1)%teams.length;
+  if (passCount < 3){
+    passCount++;
+    currentTeam = (currentTeam + 1) % teams.length;
     updateCurrentTeamDisplay();
-    setTimeout(()=>{ overlay.hidden=true; startTimerPass(); },500);
-  }else{
-    clearInterval(timerId);
-    overlay.hidden = true;
-    disableAllOptions();
-    questionCompleted = true;
-    showAnswerBtn.disabled = false;
-    nextBtn.disabled = false;
+    setTimeout(() => {
+      overlay.hidden = true;     // hide overlay between passes
+      startTimerPass();
+    }, 500);
+  } else {
+    // Everyone skipped or time ended for all teams
+    clearInterval(timerId);       // stop any running timer
+    overlay.hidden = true;        // remove blocking overlay
+    disableAllOptions();          // freeze choices
+    questionCompleted = true;     // mark as completed
+    showAnswerBtn.disabled = false; // allow showing correct answer
+    nextBtn.disabled = false;       // allow moving to next question
   }
 }
+
 
 /* ------- Question flow ------- */
 function loadQuestion(){
@@ -514,3 +520,4 @@ fetch(CSV_URL)
 </script>
 </body>
 </html>
+

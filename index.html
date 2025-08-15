@@ -26,6 +26,27 @@ body{
   color:var(--text);
 }
 
+/* Access Code Overlay */
+#accessOverlay{
+  position:fixed;
+  inset:0;
+  background:#ffffffee;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  z-index:10000;
+}
+#accessOverlay input{
+  padding:8px; font-size:16px; margin-top:10px;
+}
+#accessOverlay button{
+  margin-top:10px; padding:8px 16px; font-size:16px;
+}
+#accessOverlay p{
+  color:red; margin-top:8px;
+}
+
 /* Header with two logos */
 .header{
   display:flex;
@@ -215,27 +236,15 @@ body{
   cursor:pointer;
 }
 
-/* Full-screen flashing overlay */
-.timeout-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(211, 47, 47, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  font-size: 72px;
-  font-weight: 900;
-  z-index: 9999;
-  visibility: hidden;
-  pointer-events: none;
+/* Full-screen red flash overlay */
+.timeout-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(211,47,47,0.35);
+  z-index:9999;
+  animation:flash .65s infinite;
 }
-
-@keyframes flash {
-  0%   { opacity: 0.25; transform: scale(1); }
-  50%  { opacity: 0.8; transform: scale(1.05); }
-  100% { opacity: 0.25; transform: scale(1); }
-}
+@keyframes flash{ 0%{opacity:.25} 50%{opacity:.6} 100%{opacity:.25} }
 
 /* Responsive */
 @media (max-width: 1000px){
@@ -246,10 +255,18 @@ body{
 </style>
 </head>
 <body>
-<!-- Full-screen red flash overlay -->
-<div id="timeout-overlay" class="timeout-overlay"></div>
+<!-- Access Code Overlay -->
+<div id="accessOverlay">
+  <h2>Enter Quiz Code</h2>
+  <input type="password" id="quizCodeInput" placeholder="Enter code"/>
+  <button id="enterQuizBtn">Enter Quiz</button>
+  <p id="errorMsg"></p>
+</div>
 
-<!-- Header with logos -->
+<!-- Full-screen red flash when time hits 0 -->
+<div id="timeout-overlay" class="timeout-overlay" hidden></div>
+
+<!-- Header with your two logos -->
 <header class="header">
   <img id="logoLeft" class="logo" alt="Logo 1" />
   <h1 class="brand">College Quiz</h1>
@@ -257,6 +274,7 @@ body{
 </header>
 
 <main class="layout">
+  <!-- Quiz panel -->
   <section class="quiz-panel">
     <div class="controls">
       <label class="timer-label">
@@ -268,10 +286,12 @@ body{
 
     <div id="currentTeam" class="current-team"></div>
 
+    <!-- Royal blue question band -->
     <div class="question-band">
       <div id="question" class="question-text">Loading question…</div>
     </div>
 
+    <!-- Options -->
     <div id="options" class="options"></div>
 
     <div class="action-row">
@@ -280,6 +300,7 @@ body{
     </div>
   </section>
 
+  <!-- Scoreboard -->
   <aside class="scoreboard">
     <h2>Leaderboard</h2>
     <div id="teams"></div>
@@ -287,6 +308,23 @@ body{
 </main>
 
 <script>
+/* ------- ACCESS CODE ------- */
+const ACCESS_CODE = "QUIZ2025"; // set your quiz code
+const accessOverlay = document.getElementById("accessOverlay");
+const enterBtn = document.getElementById("enterQuizBtn");
+const codeInput = document.getElementById("quizCodeInput");
+const errorMsg = document.getElementById("errorMsg");
+
+enterBtn.addEventListener("click", () => {
+  if(codeInput.value.trim() === ACCESS_CODE){
+    accessOverlay.style.display = "none"; // hide overlay
+  } else {
+    errorMsg.textContent = "Incorrect code. Try again!";
+    codeInput.value = "";
+  }
+});
+
+/* ------- QUIZ CODE STARTS HERE ------- */
 /********** CONFIG **********/
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRiqqInQm40Eo-MOFDuPOC40etCZdH3Fxnb5ZrZwJk2ziHeIVGOYyQ0xqWKNsL-vw1FxEfYzr7u18fZ/pub?output=csv";
 const LOGO_LEFT  = "https://drive.google.com/uc?export=view&id=1QCjEZ7XRiElI9pBeyCxtfnFLh_xuB4iS";
@@ -294,7 +332,7 @@ const LOGO_RIGHT = "https://drive.google.com/uc?export=view&id=1xKpU5akmap9vLgxt
 const PASS_POINTS = [4,3,2,1];
 const PASS_SECONDS = 5;
 
-/* DOM refs */
+/* ------- DOM refs ------- */
 document.getElementById("logoLeft").src = LOGO_LEFT;
 document.getElementById("logoRight").src = LOGO_RIGHT;
 
@@ -310,173 +348,164 @@ const showAnswerBtn = document.getElementById("showAnswerBtn");
 const nextBtn = document.getElementById("nextBtn");
 const teamsWrap = document.getElementById("teams");
 
-/* State */
-let questions = [], qIndex = 0;
-let teams = [{name:"Team A",score:0},{name:"Team B",score:0},{name:"Team C",score:0},{name:"Team D",score:0}];
+/* ------- State ------- */
+let questions = [], qIndex=0;
+let teams = [
+  { name:"Team A", score:0 },
+  { name:"Team B", score:0 },
+  { name:"Team C", score:0 },
+  { name:"Team D", score:0 },
+];
 let startTeamIndex = 0, currentTeam = 0, passCount = 0;
 let timerId = null, timeLeft = 30, isPassTurn = false;
 let clickedSet = new Set(), correctIndex = -1, questionCompleted = false;
 
-/* Utils */
+/* ------- Utils ------- */
 function csvToRows(csvText){
-  const rows=[], row=[], cell="", inQuotes=false;
-  let r=[], c="", q=false;
-  for(let i=0;i<csvText.length;i++){
-    const ch=csvText[i];
-    if(ch==='"'){ if(q && csvText[i+1]==='"'){ c+='"'; i++; } else q=!q; }
-    else if(ch===',' && !q){ r.push(c); c=""; }
-    else if(ch==='\n' && !q){ r.push(c); rows.push(r); r=[]; c=""; }
-    else c+=ch;
+  const rows = []; let row = [], cell = "", inQuotes = false;
+  for (let i=0;i<csvText.length;i++){
+    const c = csvText[i];
+    if(c === '"'){
+      if(inQuotes && csvText[i+1]==='"'){ cell+='"'; i++; }
+      else inQuotes=!inQuotes;
+    }else if(c===',' && !inQuotes){ row.push(cell); cell=""; }
+    else if(c==='\n' && !inQuotes){ row.push(cell); rows.push(row); row=[]; cell=""; }
+    else{ cell+=c; }
   }
-  if(c.length || r.length){ r.push(c); rows.push(r); }
+  if(cell.length || row.length){ row.push(cell); rows.push(row); }
   return rows;
 }
 function isImageUrl(s){
   if(!s) return false;
-  const lower=s.trim().toLowerCase();
-  return lower.startsWith("img:") || /^https?:\/\/.+\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(lower);
+  const lower = s.trim().toLowerCase();
+  if(lower.startsWith("img:")) return true;
+  return /^https?:\/\/.+\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(lower);
 }
 
-/* Leaderboard */
+/* ------- Leaderboard ------- */
 function renderTeams(){
-  teamsWrap.innerHTML="";
-  teams.forEach((t,idx)=>{
-    const row=document.createElement("div");
-    row.className="team"+(idx===currentTeam?" active":"");
-    row.innerHTML=`<input type="text" value="${t.name}" />
+  teamsWrap.innerHTML = "";
+  teams.forEach((t, idx)=>{
+    const row = document.createElement("div");
+    row.className = "team"+(idx===currentTeam?" active":"");
+    row.innerHTML=`
+      <input type="text" value="${t.name}" />
       <span class="score" contenteditable="true">${t.score}</span>
       <button class="smallbtn" data-i="${idx}" data-delta="1">+1</button>
       <button class="smallbtn" data-i="${idx}" data-delta="-1">-1</button>
       <button class="smallbtn" data-i="${idx}" data-delta="5">+5</button>
-      <button class="smallbtn" data-i="${idx}" data-delta="-5">-5</button>`;
-    row.querySelector("input").addEventListener("change",e=>{
+      <button class="smallbtn" data-i="${idx}" data-delta="-5">-5</button>
+    `;
+    row.querySelector("input").addEventListener("change", e=>{
       teams[idx].name=e.target.value.trim()||`Team ${idx+1}`;
       updateCurrentTeamDisplay();
     });
-    row.querySelector(".score").addEventListener("input",()=>{ teams[idx].score=parseInt(row.querySelector(".score").innerText.replace(/[^\d-]/g,""))||0 });
+    const scoreCell = row.querySelector(".score");
+    scoreCell.addEventListener("input", ()=>{
+      const val=parseInt(scoreCell.innerText.replace(/[^\d-]/g,""))||0;
+      teams[idx].score=val;
+    });
     row.querySelectorAll(".smallbtn").forEach(btn=>{
-      btn.addEventListener("click",()=>{
+      btn.addEventListener("click", ()=>{
         const i=+btn.dataset.i, delta=+btn.dataset.delta;
-        teams[i].score+=delta; renderTeams();
+        teams[i].score+=delta;
+        renderTeams();
       });
     });
     teamsWrap.appendChild(row);
   });
 }
 function updateCurrentTeamDisplay(){
-  currentTeamEl.innerHTML=`Current Team: <span class="name">${teams[currentTeam].name}</span> (Pass ${passCount})`;
-  document.querySelectorAll(".team").forEach((el,i)=> el.classList.toggle("active",i===currentTeam));
+  currentTeamEl.innerHTML = `Current Team: <span class="name">${teams[currentTeam].name}</span> (Pass ${passCount})`;
+  document.querySelectorAll(".team").forEach((el,i)=>{
+    el.classList.toggle("active", i===currentTeam);
+  });
 }
 
-/* Timer */
-function startTimerMain(){ isPassTurn=false; startTimer(parseInt(timerInput.value,10)||30); }
-function startTimerPass(){ isPassTurn=true; startTimer(PASS_SECONDS); }
+/* ------- Timer ------- */
+function startTimerMain(){ isPassTurn=false; startTimer(parseInt(timerInput.value,10)||30);}
+function startTimerPass(){ isPassTurn=true; startTimer(PASS_SECONDS);}
 function startTimer(seconds){
-  clearInterval(timerId);
-  overlay.style.visibility="hidden";
-  timerBox.classList.remove("red","orange");
-  timeLeft=seconds;
-  timeEl.textContent=timeLeft;
-
+  clearInterval(timerId); overlay.hidden=true; timerBox.classList.remove("red","orange");
+  timeLeft=seconds; timeEl.textContent=timeLeft;
   timerId=setInterval(()=>{
-    timeLeft--;
-    timeEl.textContent=timeLeft;
-
-    if(!isPassTurn){ timerBox.classList.toggle("red",timeLeft<=10 && timeLeft>0); }
-    else{ timerBox.classList.toggle("orange",timeLeft<=3 && timeLeft>0); }
-
+    timeLeft--; timeEl.textContent=timeLeft;
+    if(!isPassTurn){
+      if(timeLeft<=10 && timeLeft>0) timerBox.classList.add("red");
+      else timerBox.classList.remove("red");
+    }else{
+      if(timeLeft<=3 && timeLeft>0) timerBox.classList.add("orange");
+      else timerBox.classList.remove("orange");
+    }
     if(timeLeft<=0){
-      clearInterval(timerId);
-      flashOverlay();
+      clearInterval(timerId); overlay.hidden=false;
       handleAutoPassOrEnd();
     }
   },1000);
 }
-
-/* Flash overlay */
-function flashOverlay(msg="TIME'S UP"){
-  overlay.textContent=msg;
-  overlay.style.visibility="visible";
-  overlay.style.animation="flash 0.65s ease-in-out 3";
-  setTimeout(()=>{ overlay.style.visibility="hidden"; overlay.textContent=""; overlay.style.animation=""; },2000);
-}
-
-/* Auto-pass / end */
 function handleAutoPassOrEnd(){
-  if(passCount<3){ passCount++; currentTeam=(currentTeam+1)%teams.length; updateCurrentTeamDisplay(); setTimeout(()=>{ startTimerPass(); },500); }
-  else{ disableAllOptions(); showAnswerBtn.disabled=false; }
+  if(passCount<3){
+    passCount++; currentTeam=(currentTeam+1)%teams.length;
+    updateCurrentTeamDisplay();
+    setTimeout(()=>{ overlay.hidden=true; startTimerPass(); },500);
+  }else{
+    disableAllOptions(); showAnswerBtn.disabled=false;
+  }
 }
 
-/* Questions */
+/* ------- Question flow ------- */
 function loadQuestion(){
-  if(qIndex>=questions.length){ qText.textContent="Quiz Finished. Great job!"; optionsWrap.innerHTML=""; showAnswerBtn.disabled=true; nextBtn.disabled=true; return; }
-
+  if(qIndex>=questions.length){ qText.textContent="Quiz Finished. Great job!"; optionsWrap.innerHTML=""; showAnswerBtn.disabled=true; nextBtn.disabled=true; return;}
   currentTeam=startTeamIndex%teams.length; startTeamIndex++; passCount=0;
-  questionCompleted=false; clickedSet.clear(); overlay.style.visibility="hidden";
+  questionCompleted=false; clickedSet.clear(); overlay.hidden=true;
 
   const q=questions[qIndex];
   qText.textContent=q.question;
-
   optionsWrap.innerHTML="";
   q.options.forEach((opt,i)=>{
     const btn=document.createElement("button"); btn.className="option"; btn.dataset.index=i;
     if(isImageUrl(opt)){
-      const url=opt.trim().toLowerCase().startsWith("img:")?opt.trim().slice(4).trim():opt.trim();
+      const url=opt.trim().toLowerCase().startsWith("img:")? opt.trim().slice(4).trim() : opt.trim();
       const img=document.createElement("img"); img.src=url; img.alt=`Option ${i+1}`; btn.appendChild(img);
-    }else btn.textContent=opt;
-
-    btn.addEventListener("click",()=> handleOptionClick(btn,i));
+    }else{ btn.textContent=opt; }
+    btn.addEventListener("click", ()=> handleOptionClick(btn,i));
     optionsWrap.appendChild(btn);
   });
-
   correctIndex=q.answerIndex;
   nextBtn.disabled=true; showAnswerBtn.disabled=true;
-  updateCurrentTeamDisplay();
-  startTimerMain();
+  updateCurrentTeamDisplay(); startTimerMain();
 }
 
 function handleOptionClick(btn,i){
   if(questionCompleted) return;
   clickedSet.add(i); const isCorrect=(i===correctIndex);
   if(isCorrect){
-    btn.classList.add("correct"); disableAllOptions(); clearInterval(timerId); overlay.style.visibility="hidden";
-    teams[currentTeam].score+=PASS_POINTS[Math.min(passCount,PASS_POINTS.length-1)]; renderTeams();
-    showAnswerBtn.disabled=false;
+    btn.classList.add("correct"); disableAllOptions(); clearInterval(timerId); overlay.hidden=true;
+    const award=PASS_POINTS[Math.min(passCount,PASS_POINTS.length-1)];
+    teams[currentTeam].score+=award; renderTeams(); showAnswerBtn.disabled=false;
   }else{
     btn.classList.add("wrong"); btn.disabled=true;
     const allDisabled=Array.from(document.querySelectorAll(".option")).every(b=>b.disabled);
-    if(allDisabled){ clearInterval(timerId); showAnswerBtn.disabled=false; return; }
+    if(allDisabled){ clearInterval(timerId); showAnswerBtn.disabled=false; return;}
     clearInterval(timerId); handleAutoPassOrEnd();
   }
 }
-function disableAllOptions(){ document.querySelectorAll(".option").forEach(b=>b.disabled=true); }
 
-showAnswerBtn.addEventListener("click",()=>{
+function disableAllOptions(){ document.querySelectorAll(".option").forEach(b=>b.disabled=true);}
+showAnswerBtn.addEventListener("click", ()=>{
   document.querySelectorAll(".option").forEach((b,idx)=>{ if(idx===correctIndex) b.classList.add("correct"); b.disabled=true; });
   questionCompleted=true; nextBtn.disabled=false; showAnswerBtn.disabled=true;
 });
-nextBtn.addEventListener("click",()=>{ qIndex++; loadQuestion(); });
+nextBtn.addEventListener("click", ()=>{ qIndex++; loadQuestion(); });
 
-/* CSV */
-async function loadCSV(){
-  const res=await fetch(CSV_URL); const text=await res.text(); const rows=csvToRows(text);
-  const header=rows[0].map(h=>h.trim().toLowerCase()); const qi=header.indexOf("question");
-  const a1=header.indexOf("option1"), a2=header.indexOf("option2"), a3=header.indexOf("option3"), a4=header.indexOf("option4");
-  const ans=header.indexOf("answer");
-
-  questions=rows.slice(1).filter(r=>r.length && r[qi]).map(r=>{
-    const opts=[r[a1],r[a2],r[a3],r[a4]].map(x=>(x||"").trim());
-    const answerText=(r[ans]||"").trim();
-    let answerIndex=-1; const n=parseInt(answerText,10);
-    if(!Number.isNaN(n)&&n>=1&&n<=4) answerIndex=n-1;
-    else answerIndex=opts.findIndex(o=>o===answerText);
-    if(answerIndex<0) answerIndex=0;
-    return { question:r[qi], options:opts, answerIndex };
+/* ------- Load CSV ------- */
+fetch(CSV_URL)
+  .then(r=>r.text())
+  .then(txt=>{
+    const rows=csvToRows(txt);
+    questions=rows.slice(1).map(r=>({ question:r[0], options:r.slice(1,5), answerIndex:parseInt(r[5],10) }));
+    renderTeams(); loadQuestion();
   });
-}
-
-/* Init */
-loadCSV().then(()=>{ renderTeams(); loadQuestion(); });
 </script>
 </body>
 </html>

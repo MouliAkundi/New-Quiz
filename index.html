@@ -449,7 +449,12 @@ function handleAutoPassOrEnd(){
     updateCurrentTeamDisplay();
     setTimeout(()=>{ overlay.hidden=true; startTimerPass(); },500);
   }else{
-    disableAllOptions(); showAnswerBtn.disabled=false;
+    clearInterval(timerId);
+    overlay.hidden = true;
+    disableAllOptions();
+    questionCompleted = true;
+    showAnswerBtn.disabled = false;
+    nextBtn.disabled = false;
   }
 }
 

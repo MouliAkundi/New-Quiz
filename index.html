@@ -453,14 +453,13 @@ function handleAutoPassOrEnd(){
       startTimerPass();
     }, 500);
   } else {
-    // Everyone skipped or time ended for all teams
-    clearInterval(timerId);       // stop any running timer
-    overlay.hidden = true;        // remove blocking overlay
-    disableAllOptions();          // freeze choices
-    questionCompleted = true;     // mark as completed
-    showAnswerBtn.disabled = false; // allow showing correct answer
-    nextBtn.disabled = false;       // allow moving to next question
-  }
+    clearInterval(timerId);
+    overlay.hidden = true;
+    disableAllOptions();
+    questionCompleted = true;
+    showAnswerBtn.disabled = false; // Enable correct answer button
+    nextBtn.disabled = false;
+}
 }
 
 
@@ -514,10 +513,11 @@ fetch(CSV_URL)
   .then(r=>r.text())
   .then(txt=>{
     const rows=csvToRows(txt);
-    questions=rows.slice(1).map(r=>({ question:r[0], options:r.slice(1,5), answerIndex:parseInt(r[5],10) }));
+    questions=rows.slice(1).map(r=>({ question:r[0], options:r.slice(1,5), answerIndex:parseInt(r[5].trim(),10)-1 }));
     renderTeams(); loadQuestion();
   });
 </script>
 </body>
 </html>
+
 

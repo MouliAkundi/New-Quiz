@@ -1,344 +1,199 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="utf-8" />
-  <title>College Quiz</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root {
-      --royal-blue: #0b3d91;
-      --royal-blue-dark: #072a65;
-      --gold: #ffd166;
-      --text: #0b1b2b;
-      --wrong: #d32f2f;
-      --correct: #2e7d32;
-      --panel: #ffffff;
-      --bg: #f3f7ff;
-      --pass-orange: #ff7f11;
-    }
-    * { box-sizing: border-box }
-    body, html { height: 100%; margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
-    button { cursor: pointer; }
-    /* Access Code Overlay */
-    #accessOverlay { position: fixed; inset: 0; background: #ffffffee; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 10000; }
-    #accessOverlay input, #accessOverlay button { padding: 8px; font-size: 16px; margin-top: 10px; }
-    #accessOverlay p { color: red; margin-top: 8px; }
-    /* Instructions Screen */
-    #instructionScreen { display: none; padding: 20px; }
-    #instructionScreen ul { text-align: left; max-width: 600px; margin: auto; font-size: 18px; line-height: 1.6; }
-    #instructionScreen button { margin-top: 20px; padding: 10px 20px; font-size: 18px; border: none; background: var(--royal-blue); color: white; border-radius: 8px; }
-    /* Quiz Layout */
-    .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #fff; border-bottom: 4px solid var(--royal-blue); }
-    .logo { height: 60px; width: auto; object-fit: contain; }
-    .brand { font-size: 28px; color: var(--royal-blue); margin: 0; }
-    .layout { display: flex; gap: 16px; padding: 16px; display: none; }
-    .quiz-panel, .scoreboard { border: 2px solid var(--royal-blue); border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); background: var(--panel); }
-    .quiz-panel { flex: 1 1 70%; padding: 16px; }
-    .scoreboard { flex: 0 0 28%; background: #fffdf6; padding: 16px; }
-    .controls { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
-    .timer-label input { width: 80px; padding: 6px 8px; font-size: 16px; }
-    .timer { font-weight: 700; font-size: 20px; }
-    .timer.red { color: var(--wrong); animation: pulse 1s infinite; }
-    .timer.orange { color: var(--pass-orange); }
-    @keyframes pulse { 0% {opacity:1} 50% {opacity:.6} 100% {opacity:1} }
-    .current-team { font-weight: 700; margin: 6px 0 10px; }
-    .current-team .name { background: var(--gold); padding: 3px 8px; border-radius: 6px; }
-    .question-band { background: var(--royal-blue); border: 2px solid var(--royal-blue-dark); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-    .question-text { color: #fff; font-weight: 800; font-size: 28px; line-height: 1.3; }
-    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
-    .option { padding: 10px; min-height: 64px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--royal-blue); border-radius: 10px; background: #fff; font-size: 18px; font-weight: 600; gap: 10px; transition: background .2s; }
-    .option:hover { background: #e8f1ff; }
-    .option.correct { background: var(--correct); color: #fff; border-color: #1b5e20; }
-    .option.wrong { background: var(--wrong); color: #fff; border-color: #b71c1c; }
-    .option img { max-height: 110px; max-width: 100%; object-fit: contain; display: block; border-radius: 6px; }
-    .action-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-    .btn { padding: 10px 14px; font-weight: 700; border-radius: 10px; min-width: 180px; border: 2px solid var(--royal-blue); background: #e8f1ff; color: #012150; }
-    .btn.primary { background: var(--gold); border-color: #caa245; }
-    .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .team { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid #e6d49a; background: #fff8e1; border-radius: 8px; margin-bottom: 8px; }
-    .team.active { outline: 3px solid var(--gold); }
-    .team input[type="text"] { padding: 6px 8px; font-size: 14px; border: 1px solid #c9b46b; border-radius: 6px; background: #fffceb; flex: 1; }
-    .score { width: 70px; text-align: center; font-weight: 800; background: #fffbea; border: 1px solid #e1cf8a; border-radius: 6px; padding: 4px 0; }
-    .smallbtn { padding: 4px 8px; border: 1px solid var(--royal-blue); background: #eef5ff; border-radius: 6px; cursor: pointer; }
-    .timeout-overlay { position: fixed; inset: 0; background: rgba(211,47,47,0.35); z-index: 9999; animation: flash .65s infinite; display: none; }
-    @keyframes flash { 0% { opacity: .25 } 50% { opacity: .6 } 100% { opacity: .25 } }
-    @media (max-width: 1000px) { .layout { flex-direction: column } .scoreboard { flex-basis: auto } .options { grid-template-columns: 1fr } }
-  </style>
+<meta charset="UTF-8">
+<title>Quiz</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #001f3f;
+  color: white;
+  text-align: center;
+}
+
+.option {
+  background: #003566;
+  margin: 10px;
+  padding: 15px;
+  cursor: pointer;
+}
+
+.correct { background: green; }
+.wrong { background: red; }
+
+#leaderboard {
+  position: fixed;
+  right: 10px;
+  top: 50px;
+  width: 200px;
+  background: #000;
+  padding: 10px;
+}
+.team-active { background: gold; color: black; }
+</style>
+
 </head>
+
 <body>
 
-  <!-- Access Code Overlay -->
-  <div id="accessOverlay">
-    <h2>Enter Quiz Code</h2>
-    <input type="password" id="quizCodeInput" placeholder="Enter code"/>
-    <button id="enterQuizBtn">Enter Quiz</button>
-    <p id="errorMsg"></p>
-  </div>
+<h1 id="title">Quiz</h1>
 
-  <!-- Instructions Screen -->
-  <div id="instructionScreen">
-    <h2>Instructions & Rules for the Quiz</h2>
-    <ul>
-      <li>Each team will be asked questions in turn.</li>
-      <li>A correct answer on your own turn earns <b>4 marks</b>.</li>
-      <li>If answered incorrectly, the question passes to the next team. Scoring:</li>
-      <ul>
-        <li>1st Pass → 3 marks</li>
-        <li>2nd Pass → 2 marks</li>
-        <li>3rd Pass → 1 mark</li>
-        <li>After 3 passes, the question ends.</li>
-      </ul>
-      <li>Each team has a <b>30-second timer</b>.Passed questions will have only <b>10 seconds</b>.</li>
-      <li>The timer turns <b style="color:red;">red</b> when below 10s; at 0, the screen flashes red.</li>
-      <li>After all options are clicked (or time runs out), click <b>Show Correct Answer</b>.</li>
-      <li>Quiz continues by clicking <b>Next Question</b>.</li>
-      <li>Leaderboard updates <b>automatically</b>.</li>
-      <li>Options may include images—click to select.</li>
-      <li>Be honest—no discussing answers with other teams.</li>
-    </ul>
-    <button id="startQuizBtn">Start Quiz</button>
-  </div>
+<div id="setup">
+  <input id="teamCount" type="number" placeholder="Teams (2-8)">
+  <button onclick="startQuiz()">Start</button>
+</div>
 
-  <!-- Quiz Layout -->
-  <header class="header">
-    <img id="logoLeft" class="logo" alt="Logo 1"/>
-    <h1 class="brand">College Quiz</h1>
-    <img id="logoRight" class="logo" alt="Logo 2"/>
-  </header>
-  <main class="layout" id="quizLayout">
-    <section class="quiz-panel">
-      <div class="controls">
-        <label class="timer-label">Timer (sec):
-          <input type="number" id="timerInput" min="5" value="30" />
-        </label>
-        <div class="timer"><span id="time">--</span>s</div>
-      </div>
-      <div id="currentTeam" class="current-team"></div>
-      <div class="question-band"><div id="question" class="question-text">Loading question…</div></div>
-      <div id="options" class="options"></div>
-      <div class="action-row">
-        <button id="showAnswerBtn" class="btn" disabled>Show Correct Answer</button>
-        <button id="nextBtn" class="btn primary" disabled>Next Question</button>
-      </div>
-    </section>
-    <aside class="scoreboard">
-      <h2>Leaderboard</h2>
-      <div id="teams"></div>
-    </aside>
-  </main>
+<div id="category"></div>
 
-  <div id="timeout-overlay" class="timeout-overlay"></div>
+<div id="quiz" style="display:none;">
+  <h2 id="question"></h2>
+  <div id="options"></div>
+  <button onclick="nextQ()">Next</button>
+</div>
 
-  <script>
-    /* ------- ACCESS CODE LOGIC ------- */
-    const ACCESS_CODE = "QUIZ2025";
-    const accessOverlay = document.getElementById("accessOverlay");
-    const instructionScreen = document.getElementById("instructionScreen");
-    const startQuizBtn = document.getElementById("startQuizBtn");
-    const quizLayout = document.getElementById("quizLayout");
-    const enterBtn = document.getElementById("enterQuizBtn");
-    const codeInput = document.getElementById("quizCodeInput");
-    const errorMsg = document.getElementById("errorMsg");
+<div id="leaderboard"></div>
 
-    enterBtn.addEventListener("click", () => {
-      if (codeInput.value.trim() === ACCESS_CODE) {
-        accessOverlay.style.display = "none";
-        instructionScreen.style.display = "block";
-      } else {
-        errorMsg.textContent = "Incorrect code. Try again!";
-        codeInput.value = "";
-      }
-    });
+<script>
 
-    startQuizBtn.addEventListener("click", () => {
-      instructionScreen.style.display = "none";
-      quizLayout.style.display = "flex";
-      renderTeams();
-      loadQuestionsFromCSV();
-    });
+const API_URL = "https://script.google.com/macros/s/AKfycbxHG21J8gJpgW5oZCni5qF_0paH1I66nPBujJGzx03s3dF45VTnnDYyotzYzBlDcT0/exec";
 
-    /* ------- CONFIG and STATE ------ */
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRiqqInQm40Eo-MOFDuPOC40etCZdH3Fxnb5ZrZwJk2ziHeIVGOYyQ0xqWKNsL-vw1FxEfYzr7u18fZ/pub?output=csv";
-    const LOGO_LEFT = "https://raw.githubusercontent.com/MouliAkundi/New-Quiz/images/logo1.jpg";
-    const LOGO_RIGHT = "https://raw.githubusercontent.com/MouliAkundi/New-Quiz/images/logo2.jpg";
-    const PASS_POINTS = [4,3,2,1];
-    const PASS_SECONDS = 10;
+let questions = [];
+let grouped = {};
+let state = {};
 
-    document.getElementById("logoLeft").src = LOGO_LEFT;
-    document.getElementById("logoRight").src = LOGO_RIGHT;
+function startQuiz() {
 
-    const timerInput = document.getElementById("timerInput");
-    const timeEl = document.getElementById("time");
-    const timerBox = document.querySelector(".timer");
-    const overlay = document.getElementById("timeout-overlay");
-    const currentTeamEl = document.getElementById("currentTeam");
-    const qText = document.getElementById("question");
-    const optionsWrap = document.getElementById("options");
-    const showAnswerBtn = document.getElementById("showAnswerBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const teamsWrap = document.getElementById("teams");
+  let n = parseInt(document.getElementById("teamCount").value);
+  if (!n || n < 2) return alert("Enter team count");
 
-    let questions = [], qIndex = 0;
-    let teams = [
-      { name:"Team A", score:0 },
-      { name:"Team B", score:0 },
-      { name:"Team C", score:0 },
-      { name:"Team D", score:0 },
-    ];
-    let startTeamIndex = 0, currentTeam = 0, passCount = 0;
-    let timerId = null, timeLeft = 30, isPassTurn = false;
-    let clickedSet = new Set(), correctIndex = -1, questionCompleted = false;
+  state = {
+    teams: [],
+    scores: {},
+    type: null,
+    qIndex: 0,
+    teamIndex: 0
+  };
 
-    /* ------- UTILS ------- */
-    function csvToRows(csvText) {
-      const rows = []; let row = [], cell = "", inQuotes = false;
-      for (let i = 0; i < csvText.length; i++) {
-        const c = csvText[i];
-        if (c === '"') {
-          if (inQuotes && csvText[i+1] === '"') { cell += '"'; i++; }
-          else inQuotes = !inQuotes;
-        } else if (c === ',' && !inQuotes) {
-          row.push(cell); cell = "";
-        } else if (c === '\n' && !inQuotes) {
-          row.push(cell); rows.push(row); row = []; cell = "";
-        } else {
-          cell += c;
-        }
-      }
-      if (cell || row.length) row.push(cell), rows.push(row);
-      return rows;
-    }
-    function isImageUrl(s) {
-      if (!s) return false;
-      const lower = s.trim().toLowerCase();
-      return lower.startsWith("img:") || /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(lower);
-    }
+  for (let i = 0; i < n; i++) {
+    let name = prompt("Team " + (i+1));
+    state.teams.push(name || ("Team " + (i+1)));
+    state.scores[state.teams[i]] = 0;
+  }
 
-    /* ------- Leaderboard ------- */
-    function renderTeams() {
-      teamsWrap.innerHTML = "";
-      teams.forEach((t, idx) => {
-        const row = document.createElement("div");
-        row.className = "team" + (idx === currentTeam ? " active" : "");
-        row.innerHTML = `
-          <input type="text" value="${t.name}" />
-          <span class="score" contenteditable="true">${t.score}</span>
-          <button class="smallbtn" data-i="${idx}" data-delta="1">+1</button>
-          <button class="smallbtn" data-i="${idx}" data-delta="-1">-1</button>
-          <button class="smallbtn" data-i="${idx}" data-delta="5">+5</button>
-          <button class="smallbtn" data-i="${idx}" data-delta="-5">-5</button>
-        `;
-        row.querySelector("input").addEventListener("change", e => {
-          teams[idx].name = e.target.value.trim() || `Team ${idx + 1}`;
-          updateCurrentTeamDisplay();
-        });
-        row.querySelector(".score").addEventListener("input", e => {
-          teams[idx].score = parseInt(e.target.innerText) || 0;
-        });
-        row.querySelectorAll(".smallbtn").forEach(btn => btn.addEventListener("click", () => {
-          teams[+btn.dataset.i].score += +btn.dataset.delta;
-          renderTeams();
-        }));
-        teamsWrap.appendChild(row);
-      });
-    }
-    function updateCurrentTeamDisplay() {
-      currentTeamEl.innerHTML = `Current Team: <span class="name">${teams[currentTeam].name}</span> (Pass ${passCount})`;
-      document.querySelectorAll(".team").forEach((el,i) => el.classList.toggle("active", i === currentTeam));
-    }
+  loadQuestions();
+}
 
-    /* ------- Timer Logic ------- */
-    function startTimerMain() { isPassTurn = false; startTimer(parseInt(timerInput.value,10) || 30); }
-    function startTimerPass() { isPassTurn = true; startTimer(PASS_SECONDS); }
-    function startTimer(seconds) {
-      clearInterval(timerId); overlay.style.display = "none"; timerBox.classList.remove("red","orange");
-      timeLeft = seconds; timeEl.textContent = timeLeft;
-      timerId = setInterval(() => {
-        timeLeft--; timeEl.textContent = timeLeft;
-        timerBox.classList.toggle("red", !isPassTurn && timeLeft <= 10 && timeLeft > 0);
-        timerBox.classList.toggle("orange", isPassTurn && timeLeft <= 3 && timeLeft > 0);
-        if (timeLeft <= 0) {
-          clearInterval(timerId); overlay.style.display = "block";
-          handleAutoPassOrEnd();
-        }
-      }, 1000);
-    }
-    function handleAutoPassOrEnd() {
-      if (passCount < 3) {
-        passCount++; currentTeam = (currentTeam + 1) % teams.length;
-        updateCurrentTeamDisplay();
-        setTimeout(() => { overlay.style.display = "none"; startTimerPass(); }, 500);
-      } else {
-        clearInterval(timerId); overlay.style.display = "none"; disableAllOptions();
-        questionCompleted = true; showAnswerBtn.disabled = false; nextBtn.disabled = false;
-      }
-    }
+/* JSONP LOAD (NO FETCH) */
+function loadQuestions() {
 
-    /* ------- Question Flow ------- */
-    function loadQuestionsFromCSV() {
-      fetch(CSV_URL).then(r => r.text()).then(txt => {
-        const rows = csvToRows(txt);
-        questions = rows.slice(1).map(r => ({
-          question: r[0],
-          options: r.slice(1, 5),
-          answerIndex: parseInt(r[5].trim(),10) - 1
-        }));
-        renderTeams(); loadQuestion();
-      });
-    }
+  let script = document.createElement("script");
+  script.src = API_URL + "?callback=handleData";
 
-    function loadQuestion() {
-      if (qIndex >= questions.length) {
-        qText.textContent = "Quiz Finished. Great job!";
-        optionsWrap.innerHTML = ""; showAnswerBtn.disabled = true; nextBtn.disabled = true;
-        return;
-      }
-      currentTeam = startTeamIndex % teams.length; startTeamIndex++; passCount = 0;
-      questionCompleted = false; clickedSet.clear(); overlay.style.display = "none";
-      const q = questions[qIndex];
-      qText.textContent = q.question;
-      optionsWrap.innerHTML = "";
-      q.options.forEach((opt,i) => {
-        const btn = document.createElement("button"); btn.className = "option"; btn.dataset.index = i;
-        if (isImageUrl(opt)) {
-          let url = opt.trim().toLowerCase().startsWith("img:") ? opt.trim().slice(4).trim() : opt.trim();
-          const img = document.createElement("img"); img.src = url; img.alt = `Option ${i+1}`; btn.appendChild(img);
-        } else {
-          btn.textContent = opt;
-        }
-        btn.addEventListener("click", () => handleOptionClick(btn,i));
-        optionsWrap.appendChild(btn);
-      });
-      correctIndex = q.answerIndex; nextBtn.disabled = true; showAnswerBtn.disabled = true;
-      updateCurrentTeamDisplay(); renderTeams(); startTimerMain();
-    }
+  document.body.appendChild(script);
+}
 
-    function handleOptionClick(btn,i) {
-      if (questionCompleted) return;
-      clickedSet.add(i); if (i === correctIndex) {
-        btn.classList.add("correct"); disableAllOptions(); clearInterval(timerId); overlay.style.display = "none";
-        teams[currentTeam].score += PASS_POINTS[Math.min(passCount, PASS_POINTS.length - 1)];
-        renderTeams(); showAnswerBtn.disabled = false;
-      } else {
-        btn.classList.add("wrong"); btn.disabled = true;
-        if (Array.from(optionsWrap.children).every(b => b.disabled)) {
-          clearInterval(timerId); showAnswerBtn.disabled = false; return;
-        }
-        clearInterval(timerId); handleAutoPassOrEnd();
-      }
-    }
-    function disableAllOptions() {
-      Array.from(optionsWrap.children).forEach(b => b.disabled = true);
-    }
-    showAnswerBtn.addEventListener("click", () => {
-      optionsWrap.children[correctIndex]?.classList.add("correct");
-      disableAllOptions(); questionCompleted = true;
-      nextBtn.disabled = false; showAnswerBtn.disabled = true;
-    });
-    nextBtn.addEventListener("click", () => { qIndex++; loadQuestion(); });
+/* CALLBACK */
+function handleData(data) {
 
-  </script>
+  questions = data;
+
+  grouped = {};
+  questions.forEach(q => {
+    if (!grouped[q.Type]) grouped[q.Type] = [];
+    grouped[q.Type].push(q);
+  });
+
+  showCategories();
+}
+
+function showCategories() {
+
+  let div = document.getElementById("category");
+  div.innerHTML = "<h3>Select Category</h3>";
+
+  Object.keys(grouped).forEach(t => {
+    let b = document.createElement("button");
+    b.innerText = t;
+    b.onclick = () => startType(t);
+    div.appendChild(b);
+  });
+}
+
+function startType(t) {
+  state.type = t;
+  state.qIndex = 0;
+
+  document.getElementById("category").innerHTML = "";
+  document.getElementById("quiz").style.display = "block";
+
+  loadQ();
+}
+
+function loadQ() {
+
+  let q = grouped[state.type][state.qIndex];
+  document.getElementById("question").innerText = q.Question;
+
+  let optDiv = document.getElementById("options");
+  optDiv.innerHTML = "";
+
+  ["A","B","C","D"].forEach(l => {
+    let d = document.createElement("div");
+    d.className = "option";
+    d.innerText = q["Option " + l];
+    d.onclick = () => answer(l,d);
+    optDiv.appendChild(d);
+  });
+
+  updateBoard();
+}
+
+function answer(ans, el) {
+
+  let q = grouped[state.type][state.qIndex];
+
+  if (ans === q["Correct Answer"]) {
+    el.classList.add("correct");
+    let team = state.teams[state.teamIndex];
+    state.scores[team] += 1;
+  } else {
+    el.classList.add("wrong");
+  }
+
+  updateBoard();
+}
+
+function nextQ() {
+
+  state.qIndex++;
+  state.teamIndex = (state.teamIndex + 1) % state.teams.length;
+
+  if (state.qIndex >= grouped[state.type].length) {
+    alert("Category finished");
+    location.reload();
+    return;
+  }
+
+  loadQ();
+}
+
+function updateBoard() {
+
+  let div = document.getElementById("leaderboard");
+  div.innerHTML = "<h3>Scores</h3>";
+
+  state.teams.forEach((t,i) => {
+    let d = document.createElement("div");
+    d.innerText = t + ": " + state.scores[t];
+
+    if (i === state.teamIndex) d.className = "team-active";
+
+    div.appendChild(d);
+  });
+}
+
+</script>
+
 </body>
 </html>
-
-

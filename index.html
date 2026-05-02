@@ -1,784 +1,828 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>College Quiz</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root {
-      --royal-blue: #0b3d91;
-      --royal-blue-dark: #072a65;
-      --gold: #ffd166;
-      --text: #0b1b2b;
-      --wrong: #d32f2f;
-      --correct: #2e7d32;
-      --panel: #ffffff;
-      --bg: #f3f7ff;
-      --pass-orange: #ff7f11;
-    }
-    * { box-sizing: border-box }
-    body, html { height: 100%; margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
-    button { cursor: pointer; }
-
-    /* ---- Access Code Overlay ---- */
-    #accessOverlay { position: fixed; inset: 0; background: #ffffffee; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 10000; }
-    #accessOverlay input, #accessOverlay button { padding: 8px; font-size: 16px; margin-top: 10px; }
-    #accessOverlay p { color: red; margin-top: 8px; }
-
-    /* ---- Instructions Screen ---- */
-    #instructionScreen { display: none; padding: 20px; text-align: center; }
-    #instructionScreen ul { text-align: left; max-width: 600px; margin: auto; font-size: 18px; line-height: 1.6; }
-    #instructionScreen .timer-settings { margin-top: 16px; font-size: 16px; line-height: 2; }
-    #instructionScreen .timer-settings label { display: block; margin-bottom: 6px; }
-    #instructionScreen .timer-settings input { width: 70px; padding: 4px 8px; font-size: 16px; margin-left: 8px; }
-    #startQuizBtn { margin-top: 20px; padding: 10px 28px; font-size: 18px; border: none; background: var(--royal-blue); color: white; border-radius: 8px; cursor: pointer; }
-
-    /* ---- Resume banner ---- */
-    #resumeBanner {
-      display: none; margin: 18px auto 0; max-width: 600px;
-      background: #fffbe6; border: 2px solid #f0c040; border-radius: 10px;
-      padding: 14px 18px; font-size: 15px; text-align: left;
-    }
-    #resumeBanner strong { font-size: 16px; }
-    .resume-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    .resume-row button { padding: 8px 18px; font-size: 14px; font-weight: 700; border-radius: 8px; border: 2px solid; cursor: pointer; }
-    #resumeYesBtn  { background: var(--correct); color:#fff; border-color:#1b5e20; }
-    #resumeNoBtn   { background: #eee; color:#333; border-color:#bbb; }
-    #importJsonBtn { background: #e8f1ff; color: var(--royal-blue); border-color: var(--royal-blue); }
-
-    /* ---- Hidden file input for import ---- */
-    #jsonFileInput { display: none; }
-
-    /* ---- Quiz Layout ---- */
-    .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #fff; border-bottom: 4px solid var(--royal-blue); }
-    .logo { height: 60px; width: auto; object-fit: contain; }
-    .brand { font-size: 28px; color: var(--royal-blue); margin: 0; }
-    #quizLayout { display: none; flex-direction: row; gap: 16px; padding: 16px; }
-    .quiz-panel, .scoreboard { border: 2px solid var(--royal-blue); border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); background: var(--panel); }
-    .quiz-panel { flex: 1 1 70%; padding: 16px; }
-    .scoreboard  { flex: 0 0 28%; background: #fffdf6; padding: 16px; }
-
-    /* ---- Save/Export bar ---- */
-    #saveBar {
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-      margin-bottom: 10px; padding: 8px 10px;
-      background: #f0f6ff; border: 1px solid #c5d8f8; border-radius: 8px;
-      font-size: 13px;
-    }
-    #saveBar button { padding: 5px 12px; font-size: 13px; font-weight: 700; border-radius: 6px; border: 1.5px solid; cursor: pointer; }
-    #saveNowBtn   { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
-    #exportBtn    { background: #dcfce7; color: #15803d; border-color: #86efac; }
-    #clearSaveBtn { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
-    #saveStatus   { color: #555; font-style: italic; flex: 1; text-align: right; }
-
-    /* ---- Type badge ---- */
-    .type-badge { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .07em; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px; text-transform: uppercase; }
-    .type-badge.mcq  { background: #dbeafe; color: #1d4ed8; }
-    .type-badge.tf   { background: #dcfce7; color: #15803d; }
-    .type-badge.fitb { background: #fef9c3; color: #a16207; }
-
-    .controls { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
-    .timer-label input { width: 80px; padding: 6px 8px; font-size: 16px; }
-    .timer { font-weight: 700; font-size: 20px; }
-    .timer.red    { color: var(--wrong);       animation: pulse 1s infinite; }
-    .timer.orange { color: var(--pass-orange); }
-    @keyframes pulse { 0%{opacity:1} 50%{opacity:.6} 100%{opacity:1} }
-
-    .current-team { font-weight: 700; margin: 6px 0 10px; }
-    .current-team .name { background: var(--gold); padding: 3px 8px; border-radius: 6px; }
-    .question-band { background: var(--royal-blue); border: 2px solid var(--royal-blue-dark); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-    .question-text { color: #fff; font-weight: 800; font-size: 28px; line-height: 1.3; }
-
-    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
-    .option { padding: 10px; min-height: 64px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--royal-blue); border-radius: 10px; background: #fff; font-size: 18px; font-weight: 600; gap: 10px; transition: background .2s; }
-    .option:hover   { background: #e8f1ff; }
-    .option.correct { background: var(--correct); color: #fff; border-color: #1b5e20; }
-    .option.wrong   { background: var(--wrong);   color: #fff; border-color: #b71c1c; }
-    .option img { max-height: 110px; max-width: 100%; object-fit: contain; display: block; border-radius: 6px; }
-
-    #fitbArea { margin-top: 10px; display: none; }
-    #fitbInput { width: 100%; padding: 12px 16px; font-size: 22px; font-weight: 600; border: 2px solid var(--royal-blue); border-radius: 10px; outline: none; transition: border-color .2s; }
-    #fitbInput:focus   { border-color: var(--gold); }
-    #fitbInput.correct { background: #dcfce7; border-color: var(--correct); color: var(--correct); }
-    #fitbInput.wrong   { background: #fee2e2; border-color: var(--wrong);   color: var(--wrong); }
-    #fitbSubmitBtn { margin-top: 10px; padding: 10px 28px; font-size: 18px; font-weight: 700; background: var(--royal-blue); color: #fff; border: none; border-radius: 10px; cursor: pointer; }
-    #fitbSubmitBtn:disabled { opacity: .45; cursor: not-allowed; }
-    #fitbFeedback { margin-top: 8px; font-size: 16px; font-weight: 600; min-height: 22px; }
-
-    .action-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-    .btn { padding: 10px 14px; font-weight: 700; border-radius: 10px; min-width: 180px; border: 2px solid var(--royal-blue); background: #e8f1ff; color: #012150; }
-    .btn.primary  { background: var(--gold); border-color: #caa245; }
-    .btn:disabled { opacity: .5; cursor: not-allowed; }
-
-    .team { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid #e6d49a; background: #fff8e1; border-radius: 8px; margin-bottom: 8px; }
-    .team.active { outline: 3px solid var(--gold); }
-    .team input[type="text"] { padding: 6px 8px; font-size: 14px; border: 1px solid #c9b46b; border-radius: 6px; background: #fffceb; flex: 1; }
-    .score { width: 70px; text-align: center; font-weight: 800; background: #fffbea; border: 1px solid #e1cf8a; border-radius: 6px; padding: 4px 0; }
-    .smallbtn { padding: 4px 8px; border: 1px solid var(--royal-blue); background: #eef5ff; border-radius: 6px; cursor: pointer; }
-
-    .timeout-overlay { position: fixed; inset: 0; background: rgba(211,47,47,0.35); z-index: 9999; animation: flash .65s infinite; display: none; }
-    @keyframes flash { 0%{opacity:.25} 50%{opacity:.6} 100%{opacity:.25} }
-
-    @media (max-width: 1000px) {
-      #quizLayout { flex-direction: column; }
-      .scoreboard { flex-basis: auto; }
-      .options { grid-template-columns: 1fr; }
-    }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>College Quiz</title>
+<style>
+:root{--royal-blue:#0b3d91;--royal-blue-dark:#072a65;--gold:#ffd166;--text:#0b1b2b;--wrong:#d32f2f;--correct:#2e7d32;--panel:#ffffff;--bg:#f3f7ff;--pass-orange:#ff7f11;}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);}
+button{cursor:pointer;}
+#accessOverlay{position:fixed;inset:0;background:#ffffffee;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:10000;}
+#accessOverlay input,#accessOverlay button{padding:8px;font-size:16px;margin-top:10px;}
+#accessOverlay p{color:red;margin-top:8px;}
+#instructionScreen{display:none;padding:20px;text-align:center;}
+#instructionScreen ul{text-align:left;max-width:600px;margin:auto;font-size:16px;line-height:1.6;}
+.timer-settings{margin-top:16px;font-size:15px;line-height:2;}
+.timer-settings label{display:block;margin-bottom:6px;}
+.timer-settings input{width:70px;padding:4px 8px;font-size:15px;margin-left:8px;}
+#startQuizBtn{margin-top:20px;padding:10px 28px;font-size:18px;border:none;background:var(--royal-blue);color:white;border-radius:8px;cursor:pointer;}
+#resumeBanner{display:none;margin:14px auto 0;max-width:600px;background:#fffbe6;border:2px solid #f0c040;border-radius:10px;padding:12px 16px;font-size:14px;text-align:left;}
+.resume-row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.resume-row button{padding:7px 14px;font-size:13px;font-weight:700;border-radius:8px;border:2px solid;cursor:pointer;}
+#resumeYesBtn{background:#2e7d32;color:#fff;border-color:#1b5e20;}
+#resumeNoBtn{background:#eee;color:#333;border-color:#bbb;}
+#importJsonBtn{background:#e8f1ff;color:var(--royal-blue);border-color:var(--royal-blue);}
+#importOnlyRow{margin-top:12px;}
+#importJsonBtn2{padding:7px 16px;font-size:13px;font-weight:700;border-radius:8px;border:2px solid var(--royal-blue);background:#e8f1ff;color:var(--royal-blue);cursor:pointer;}
+#jsonFileInput{display:none;}
+.header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#fff;border-bottom:4px solid var(--royal-blue);}
+.logo{height:50px;width:auto;object-fit:contain;}
+.brand{font-size:24px;color:var(--royal-blue);margin:0;}
+#quizLayout{display:none;flex-direction:row;gap:12px;padding:12px;}
+.quiz-panel{flex:1 1 70%;padding:14px;border:2px solid var(--royal-blue);border-radius:12px;background:#fff;}
+.scoreboard{flex:0 0 27%;background:#fffdf6;padding:14px;border:2px solid var(--royal-blue);border-radius:12px;}
+#saveBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:7px 10px;background:#f0f6ff;border:1px solid #c5d8f8;border-radius:8px;font-size:12px;}
+#saveBar button{padding:4px 10px;font-size:12px;font-weight:700;border-radius:6px;border:1.5px solid;cursor:pointer;}
+#saveNowBtn{background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;}
+#exportBtn{background:#dcfce7;color:#15803d;border-color:#86efac;}
+#clearSaveBtn{background:#fee2e2;color:#b91c1c;border-color:#fca5a5;}
+#soundToggleBtn{background:#ede9fe;color:#5b21b6;border:1.5px solid #a78bfa;padding:4px 10px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;}
+#soundToggleBtn.muted{background:#f3f4f6;color:#9ca3af;border-color:#d1d5db;}
+#saveStatus{color:#555;font-style:italic;flex:1;text-align:right;}
+.controls{display:flex;align-items:center;gap:14px;margin-bottom:8px;}
+.timer-label input{width:70px;padding:5px 7px;font-size:15px;}
+.timer{font-weight:700;font-size:20px;}
+.timer.red{color:var(--wrong);animation:pulse 1s infinite;}
+.timer.orange{color:var(--pass-orange);}
+@keyframes pulse{0%{opacity:1}50%{opacity:.6}100%{opacity:1}}
+.current-team{font-weight:700;margin:5px 0 9px;}
+.current-team .name{background:var(--gold);padding:3px 8px;border-radius:6px;}
+.badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
+.type-badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:3px 10px;border-radius:20px;text-transform:uppercase;}
+.type-badge.mcq{background:#dbeafe;color:#1d4ed8;}
+.type-badge.tf{background:#dcfce7;color:#15803d;}
+.type-badge.fitb{background:#fef9c3;color:#a16207;}
+.type-badge.round{background:#fee2e2;color:#b91c1c;border:2px solid #fca5a5;}
+.question-band{background:var(--royal-blue);border:2px solid var(--royal-blue-dark);border-radius:12px;padding:14px;margin-bottom:11px;}
+.question-text{color:#fff;font-weight:800;font-size:24px;line-height:1.3;}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:8px;}
+.option{padding:9px;min-height:58px;display:flex;align-items:center;justify-content:center;border:2px solid var(--royal-blue);border-radius:10px;background:#fff;font-size:17px;font-weight:600;gap:8px;transition:background .2s;}
+.option:hover{background:#e8f1ff;}
+.option.correct{background:var(--correct);color:#fff;border-color:#1b5e20;}
+.option.wrong{background:var(--wrong);color:#fff;border-color:#b71c1c;}
+.option img{max-height:100px;max-width:100%;object-fit:contain;display:block;border-radius:6px;}
+#fitbArea{margin-top:10px;display:none;}
+#fitbInput{width:100%;padding:11px 14px;font-size:20px;font-weight:600;border:2px solid var(--royal-blue);border-radius:10px;outline:none;}
+#fitbInput.correct{background:#dcfce7;border-color:var(--correct);color:var(--correct);}
+#fitbInput.wrong{background:#fee2e2;border-color:var(--wrong);color:var(--wrong);}
+#fitbSubmitBtn{margin-top:9px;padding:9px 24px;font-size:17px;font-weight:700;background:var(--royal-blue);color:#fff;border:none;border-radius:10px;cursor:pointer;}
+#fitbSubmitBtn:disabled{opacity:.45;cursor:not-allowed;}
+#fitbFeedback{margin-top:7px;font-size:15px;font-weight:600;min-height:20px;}
+.action-row{display:flex;gap:9px;margin-top:11px;flex-wrap:wrap;}
+.btn{padding:9px 13px;font-weight:700;border-radius:10px;min-width:160px;border:2px solid var(--royal-blue);background:#e8f1ff;color:#012150;}
+.btn.primary{background:var(--gold);border-color:#caa245;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.team{display:flex;align-items:center;gap:5px;padding:6px 7px;border:1px solid #e6d49a;background:#fff8e1;border-radius:8px;margin-bottom:7px;}
+.team.active{outline:3px solid var(--gold);}
+.team input[type="text"]{padding:5px 7px;font-size:13px;border:1px solid #c9b46b;border-radius:6px;background:#fffceb;flex:1;}
+.score{width:60px;text-align:center;font-weight:800;background:#fffbea;border:1px solid #e1cf8a;border-radius:6px;padding:3px 0;}
+.smallbtn{padding:3px 7px;border:1px solid var(--royal-blue);background:#eef5ff;border-radius:6px;cursor:pointer;font-size:12px;}
+.timeout-overlay{position:fixed;inset:0;background:rgba(211,47,47,0.35);z-index:9999;animation:flash .65s infinite;display:none;}
+@keyframes flash{0%{opacity:.25}50%{opacity:.6}100%{opacity:.25}}
+@media(max-width:800px){#quizLayout{flex-direction:column;}.scoreboard{flex-basis:auto;}.options{grid-template-columns:1fr;}}
+</style>
 </head>
 <body>
 
-  <!-- Access Code Overlay -->
-  <div id="accessOverlay">
-    <h2>Enter Quiz Code</h2>
-    <input type="password" id="quizCodeInput" placeholder="Enter code" />
-    <button id="enterQuizBtn">Enter Quiz</button>
-    <p id="errorMsg"></p>
+<div id="accessOverlay">
+  <h2 style="color:var(--royal-blue);">Enter Quiz Code</h2>
+  <input type="password" id="quizCodeInput" placeholder="Enter code"/>
+  <button id="enterQuizBtn" style="background:var(--royal-blue);color:#fff;border:none;border-radius:8px;">Enter Quiz</button>
+  <p id="errorMsg"></p>
+</div>
+
+<div id="instructionScreen">
+  <h2 style="color:var(--royal-blue);">Instructions &amp; Rules</h2>
+  <ul>
+    <li>Teams answer in turn. Three types: <b>MCQ</b>, <b>True/False</b>, <b>Fill in the Blank</b>.</li>
+    <li>Correct on your turn = <b>4 marks</b>. On pass: 1st=3, 2nd=2, 3rd=1. After 3 passes, no marks.</li>
+    <li>Timer goes <b style="color:red;">red</b> below 10s. Screen flashes red at 0.</li>
+    <li>For Fill in Blank: type answer and press <b>Submit</b> or Enter.</li>
+    <li>Click <b>Show Correct Answer</b> then <b>Next Question</b> to continue.</li>
+    <li>Progress is <b>auto-saved</b> every second. Use Export for extra safety.</li>
+  </ul>
+  <div class="timer-settings">
+    <label>Main Timer (seconds): <input type="number" id="mainTimerSetting" min="5" value="40"/></label>
+    <label>Pass Timer (seconds): <input type="number" id="passTimerSetting" min="5" value="20"/></label>
   </div>
-
-  <!-- Instructions Screen -->
-  <div id="instructionScreen">
-    <h2>Instructions &amp; Rules for the Quiz</h2>
-    <ul>
-      <li>Each team will be asked questions in turn.</li>
-      <li>Three question types: <b>MCQ</b>, <b>True/False</b>, and <b>Fill in the Blank</b>.</li>
-      <li>A correct answer on your own turn earns <b>4 marks</b>.</li>
-      <li>If answered incorrectly, the question passes to the next team:</li>
-      <ul>
-        <li>1st Pass → 3 marks &nbsp;|&nbsp; 2nd Pass → 2 marks &nbsp;|&nbsp; 3rd Pass → 1 mark</li>
-        <li>After 3 passes, the question ends with no marks.</li>
-      </ul>
-      <li>The timer turns <b style="color:red;">red</b> below 10 s; at 0, the screen flashes red.</li>
-      <li>For <b>Fill in the Blank</b>: type your answer and press <b>Submit Answer</b> or Enter.</li>
-      <li>Click <b>Show Correct Answer</b> then <b>Next Question</b> to continue.</li>
-      <li>Progress is <b>auto-saved</b> after every question. Use <b>💾 Save Now</b> or <b>📤 Export</b> for extra safety.</li>
-      <li>Be honest — no discussing answers with other teams.</li>
-    </ul>
-
-    <div class="timer-settings">
-      <label>Main Timer (seconds): <input type="number" id="mainTimerSetting" min="5" value="40" /></label>
-      <label>Pass Timer (seconds): <input type="number" id="passTimerSetting" min="5" value="20" /></label>
+  <div id="resumeBanner">
+    <strong>&#9889; A saved session was found!</strong>
+    <div id="resumeInfo" style="margin-top:5px;color:#555;font-size:13px;"></div>
+    <div class="resume-row">
+      <button id="resumeYesBtn">&#8635; Resume Session</button>
+      <button id="resumeNoBtn">&#128197; Start Fresh</button>
+      <button id="importJsonBtn">&#128229; Import from File</button>
     </div>
-
-    <!-- Resume / Import banner (shown only when a save exists) -->
-    <div id="resumeBanner">
-      <strong>⚡ A saved session was found!</strong>
-      <div id="resumeInfo" style="margin-top:6px; color:#555;"></div>
-      <div class="resume-row">
-        <button id="resumeYesBtn">↺ Resume Session</button>
-        <button id="resumeNoBtn">🆕 Start Fresh</button>
-        <button id="importJsonBtn">📥 Import from File</button>
-      </div>
-    </div>
-
-    <!-- Shown when no save exists -->
-    <div id="importOnlyRow" style="margin-top:14px;">
-      <button id="importJsonBtn2" style="padding:8px 18px; font-size:14px; font-weight:700; border-radius:8px; border:2px solid var(--royal-blue); background:#e8f1ff; color:var(--royal-blue); cursor:pointer;">📥 Import session from file</button>
-    </div>
-
-    <br/>
-    <button id="startQuizBtn">Start Quiz</button>
-    <input type="file" id="jsonFileInput" accept=".json" />
   </div>
+  <div id="importOnlyRow">
+    <button id="importJsonBtn2">&#128229; Import session from file</button>
+  </div>
+  <br/>
+  <button id="startQuizBtn">Start Quiz</button>
+  <input type="file" id="jsonFileInput" accept=".json"/>
+</div>
 
-  <!-- Header -->
-  <header class="header">
-    <img id="logoLeft"  class="logo" alt="Logo 1" />
-    <h1 class="brand">College Quiz</h1>
-    <img id="logoRight" class="logo" alt="Logo 2" />
-  </header>
+<header class="header">
+  <img id="logoLeft" class="logo" alt="Logo"/>
+  <h1 class="brand">College Quiz</h1>
+  <img id="logoRight" class="logo" alt="Logo"/>
+</header>
 
-  <!-- Quiz Layout -->
-  <main id="quizLayout">
-    <section class="quiz-panel">
-
-      <!-- Save / Export bar -->
-      <div id="saveBar">
-        <button id="saveNowBtn">💾 Save Now</button>
-        <button id="exportBtn">📤 Export to File</button>
-        <button id="clearSaveBtn">🗑 Clear Save</button>
-        <span id="saveStatus">No save yet this session.</span>
-      </div>
-
-      <div class="controls">
-        <label class="timer-label">Timer (sec):
-          <input type="number" id="timerInput" min="5" value="40" />
-        </label>
-        <div class="timer"><span id="time">--</span>s</div>
-      </div>
-
-      <div id="currentTeam" class="current-team"></div>
+<main id="quizLayout">
+  <section class="quiz-panel">
+    <div id="saveBar">
+      <button id="saveNowBtn">&#128190; Save Now</button>
+      <button id="exportBtn">&#128228; Export</button>
+      <button id="clearSaveBtn">&#128465; Clear Save</button>
+      <button id="soundToggleBtn">&#128266; Sound ON</button>
+      <span id="saveStatus">No save yet.</span>
+    </div>
+    <div class="controls">
+      <label class="timer-label">Timer (sec): <input type="number" id="timerInput" min="5" value="40"/></label>
+      <div class="timer"><span id="time">--</span>s</div>
+    </div>
+    <div id="currentTeam" class="current-team"></div>
+    <div class="badges">
       <span id="typeBadge" class="type-badge"></span>
+      <span id="roundBadge" class="type-badge round" style="display:none;"></span>
+    </div>
+    <div class="question-band">
+      <div id="question" class="question-text">Loading question...</div>
+    </div>
+    <div id="options" class="options"></div>
+    <div id="fitbArea">
+      <input type="text" id="fitbInput" placeholder="Type your answer here..." autocomplete="off"/>
+      <br/>
+      <button id="fitbSubmitBtn">Submit Answer</button>
+      <div id="fitbFeedback"></div>
+    </div>
+    <div class="action-row">
+      <button id="showAnswerBtn" class="btn" disabled>Show Correct Answer</button>
+      <button id="nextBtn" class="btn primary" disabled>Next Question</button>
+    </div>
+  </section>
+  <aside class="scoreboard">
+    <h2 style="color:var(--royal-blue);margin-top:0;">Leaderboard</h2>
+    <div id="teams"></div>
+  </aside>
+</main>
 
-      <div class="question-band">
-        <div id="question" class="question-text">Loading question…</div>
-      </div>
+<div id="timeout-overlay" class="timeout-overlay"></div>
 
-      <div id="options" class="options"></div>
+<script>
+/* ============================================================
+   CONFIG — edit these
+============================================================ */
+const ACCESS_CODE = "QUIZ2025";
+const CSV_URL     = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3VOcuvsXuZN5CPBuciUv_zSS9eLLhGxAWmUm97p5SeMgB6bd3C-ZDlaHkgRgsRWO9kYlVQgQafpPT/pub?gid=0&single=true&output=csv";
+const LOGO_SRC    = ""; /* paste your base64 data:image/png;base64,.... here */
+const PASS_POINTS = [4,3,2,1];
+const SAVE_KEY    = "collegeQuizSave_v2"; /* new key so old corrupt saves don't interfere */
 
-      <div id="fitbArea">
-        <input type="text" id="fitbInput" placeholder="Type your answer here…" autocomplete="off" />
-        <br />
-        <button id="fitbSubmitBtn">Submit Answer</button>
-        <div id="fitbFeedback"></div>
-      </div>
+let MAIN_SECONDS = 40;
+let PASS_SECONDS = 20;
 
-      <div class="action-row">
-        <button id="showAnswerBtn" class="btn" disabled>Show Correct Answer</button>
-        <button id="nextBtn" class="btn primary" disabled>Next Question</button>
-      </div>
-    </section>
+/* ============================================================
+   WEB AUDIO — synthesised, no external files
+============================================================ */
+let audioCtx = null, soundEnabled = true;
+function getCtx(){
+  if(!audioCtx) audioCtx = new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended") audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq,type,dur,vol,delay){
+  if(!soundEnabled) return;
+  try{
+    const c=getCtx(), now=c.currentTime+(delay||0);
+    const o=c.createOscillator(), g=c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type=type; o.frequency.setValueAtTime(freq,now);
+    g.gain.setValueAtTime(vol,now); g.gain.linearRampToValueAtTime(0,now+dur);
+    o.start(now); o.stop(now+dur+0.02);
+  }catch(e){}
+}
+function sfxCorrect(){ tone(523,"sine",0.12,0.5,0); tone(784,"sine",0.25,0.5,0.12); }
+function sfxWrong()  { tone(220,"sawtooth",0.12,0.4,0); tone(150,"sawtooth",0.25,0.4,0.12); }
+function sfxTick()   { tone(880,"square",0.07,0.2,0); }
+function sfxTimeUp() { [0,.18,.36,.54,.72].forEach(d=>tone(440,"square",0.14,0.45,d)); }
+function sfxFinish() { [523,659,784,1047].forEach((f,i)=>tone(f,"sine",0.28,0.45,i*0.14)); }
 
-    <aside class="scoreboard">
-      <h2>Leaderboard</h2>
-      <div id="teams"></div>
-    </aside>
-  </main>
+document.addEventListener("pointerdown",()=>{try{getCtx();}catch(e){}},{once:true});
+const soundBtn = document.getElementById("soundToggleBtn");
+soundBtn.addEventListener("click",()=>{
+  soundEnabled=!soundEnabled;
+  soundBtn.textContent = soundEnabled ? "&#128266; Sound ON" : "&#128263; Sound OFF";
+  soundBtn.classList.toggle("muted",!soundEnabled);
+  if(soundEnabled) sfxTick();
+});
 
-  <div id="timeout-overlay" class="timeout-overlay"></div>
+/* ============================================================
+   DOM REFS
+============================================================ */
+const accessOverlay     = document.getElementById("accessOverlay");
+const instructionScreen = document.getElementById("instructionScreen");
+const quizLayout        = document.getElementById("quizLayout");
+const enterBtn          = document.getElementById("enterQuizBtn");
+const codeInput         = document.getElementById("quizCodeInput");
+const errorMsg          = document.getElementById("errorMsg");
+const resumeBanner      = document.getElementById("resumeBanner");
+const resumeInfo        = document.getElementById("resumeInfo");
+const resumeYesBtn      = document.getElementById("resumeYesBtn");
+const resumeNoBtn       = document.getElementById("resumeNoBtn");
+const importOnlyRow     = document.getElementById("importOnlyRow");
+const timerInput        = document.getElementById("timerInput");
+const timeEl            = document.getElementById("time");
+const timerBox          = document.querySelector(".timer");
+const overlay           = document.getElementById("timeout-overlay");
+const currentTeamEl     = document.getElementById("currentTeam");
+const qText             = document.getElementById("question");
+const optionsWrap       = document.getElementById("options");
+const fitbArea          = document.getElementById("fitbArea");
+const fitbInput         = document.getElementById("fitbInput");
+const fitbSubmitBtn     = document.getElementById("fitbSubmitBtn");
+const fitbFeedback      = document.getElementById("fitbFeedback");
+const showAnswerBtn     = document.getElementById("showAnswerBtn");
+const nextBtn           = document.getElementById("nextBtn");
+const teamsWrap         = document.getElementById("teams");
+const typeBadge         = document.getElementById("typeBadge");
+const roundBadge        = document.getElementById("roundBadge");
+const saveStatus        = document.getElementById("saveStatus");
+const jsonFileInput     = document.getElementById("jsonFileInput");
 
-  <script>
-    /* ============================================================
-       CONFIG
-    ============================================================ */
-    const ACCESS_CODE  = "QUIZ2025";
-    const CSV_URL      = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3VOcuvsXuZN5CPBuciUv_zSS9eLLhGxAWmUm97p5SeMgB6bd3C-ZDlaHkgRgsRWO9kYlVQgQafpPT/pub?gid=0&single=true&output=csv";
-    const LOGO_LEFT    = "https://raw.githubusercontent.com/MouliAkundi/All-Types-Quiz/images/logo.png";
-    const LOGO_RIGHT   = "https://raw.githubusercontent.com/MouliAkundi/All-Types-Quiz/images/logo.png";
-    const PASS_POINTS  = [4, 3, 2, 1];
-    const SAVE_KEY     = "collegeQuizSave";
+if(LOGO_SRC){
+  document.getElementById("logoLeft").src  = LOGO_SRC;
+  document.getElementById("logoRight").src = LOGO_SRC;
+}
 
-    let MAIN_SECONDS = 40;
-    let PASS_SECONDS = 20;
+/* ============================================================
+   STATE
+   
+   TEAM ROTATION DESIGN (simple and correct):
+   - qIndex        : which question we are on (0-based)
+   - currentTeam   : which team is currently answering (0-based)
+   - nextTeamIndex : the team that will START the NEXT question
+                     This is the ONLY rotation counter.
+                     It increments by 1 (mod numTeams) each time
+                     a new question starts fresh.
+   - passCount     : how many times this question has been passed
+   - isPassTurn    : true if we are currently in a pass timer
+   - timeLeft      : seconds remaining on current timer
+   
+   On save  → snapshot all 6 values above + scores + qIndex
+   On restore → restore all 6 values exactly, skip rotation logic
+============================================================ */
+let questions = [], qIndex = 0;
+let teams = [
+  {name:"Team A",score:0},
+  {name:"Team B",score:0},
+  {name:"Team C",score:0},
+  {name:"Team D",score:0}
+];
+let nextTeamIndex    = 0;   /* which team starts the next fresh question */
+let currentTeam      = 0;   /* which team is answering RIGHT NOW        */
+let passCount        = 0;
+let isPassTurn       = false;
+let timeLeft         = 0;
+let timerId          = null;
+let correctIndex     = -1;
+let questionCompleted= false;
+let currentType      = "MCQ";
+let correctAnswerText= "";
+let isRestoredSession= false; /* true when we just loaded from a save   */
 
-    /* ============================================================
-       DOM REFS
-    ============================================================ */
-    const accessOverlay     = document.getElementById("accessOverlay");
-    const instructionScreen = document.getElementById("instructionScreen");
-    const quizLayout        = document.getElementById("quizLayout");
-    const enterBtn          = document.getElementById("enterQuizBtn");
-    const codeInput         = document.getElementById("quizCodeInput");
-    const errorMsg          = document.getElementById("errorMsg");
-    const resumeBanner      = document.getElementById("resumeBanner");
-    const resumeInfo        = document.getElementById("resumeInfo");
-    const resumeYesBtn      = document.getElementById("resumeYesBtn");
-    const resumeNoBtn       = document.getElementById("resumeNoBtn");
-    const importOnlyRow     = document.getElementById("importOnlyRow");
-    const timerInput        = document.getElementById("timerInput");
-    const timeEl            = document.getElementById("time");
-    const timerBox          = document.querySelector(".timer");
-    const overlay           = document.getElementById("timeout-overlay");
-    const currentTeamEl     = document.getElementById("currentTeam");
-    const qText             = document.getElementById("question");
-    const optionsWrap       = document.getElementById("options");
-    const fitbArea          = document.getElementById("fitbArea");
-    const fitbInput         = document.getElementById("fitbInput");
-    const fitbSubmitBtn     = document.getElementById("fitbSubmitBtn");
-    const fitbFeedback      = document.getElementById("fitbFeedback");
-    const showAnswerBtn     = document.getElementById("showAnswerBtn");
-    const nextBtn           = document.getElementById("nextBtn");
-    const teamsWrap         = document.getElementById("teams");
-    const typeBadge         = document.getElementById("typeBadge");
-    const saveNowBtn        = document.getElementById("saveNowBtn");
-    const exportBtn         = document.getElementById("exportBtn");
-    const clearSaveBtn      = document.getElementById("clearSaveBtn");
-    const saveStatus        = document.getElementById("saveStatus");
-    const jsonFileInput     = document.getElementById("jsonFileInput");
+/* ============================================================
+   SAVE / RESTORE
+   
+   Snapshot captures the COMPLETE state needed to resume exactly:
+   - qIndex, currentTeam, nextTeamIndex, passCount
+   - isPassTurn, timeLeft (so timer resumes with correct seconds)
+   - teams (names + scores)
+   - timer settings
+============================================================ */
+function buildSnap(){
+  return {
+    version: 3,
+    savedAt: new Date().toISOString(),
+    qIndex,
+    currentTeam,
+    nextTeamIndex,
+    passCount,
+    isPassTurn,
+    timeLeft,
+    teams: JSON.parse(JSON.stringify(teams)),
+    mainSeconds: parseInt(timerInput.value,10) || MAIN_SECONDS,
+    passSeconds: PASS_SECONDS
+  };
+}
 
-    document.getElementById("logoLeft").src  = LOGO_LEFT;
-    document.getElementById("logoRight").src = LOGO_RIGHT;
+function saveToLocal(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify(buildSnap()));
+    saveStatus.textContent = `Saved ${new Date().toLocaleTimeString()} (Q${qIndex+1})`;
+  }catch(e){
+    saveStatus.textContent = "Could not save.";
+  }
+}
 
-    /* ============================================================
-       STATE
-    ============================================================ */
-    let questions = [], qIndex = 0;
-    let teams = [
-      { name: "Team A", score: 0 },
-      { name: "Team B", score: 0 },
-      { name: "Team C", score: 0 },
-      { name: "Team D", score: 0 },
-    ];
-    let startTeamIndex = 0, currentTeam = 0, passCount = 0;
-    let timerId = null, timeLeft = 0, isPassTurn = false;
-    let correctIndex = -1, questionCompleted = false;
-    let currentType = "MCQ";
-    let correctAnswerText = "";
+function loadFromLocal(){
+  try{
+    const r = localStorage.getItem(SAVE_KEY);
+    return r ? JSON.parse(r) : null;
+  }catch(e){ return null; }
+}
 
-    /* ============================================================
-       SAVE / RESTORE
-    ============================================================ */
-    function buildSnapshot() {
-      return {
-        version: 1,
-        savedAt: new Date().toISOString(),
-        qIndex,
-        startTeamIndex,
-        currentTeam,
-        teams: JSON.parse(JSON.stringify(teams)),
-        mainSeconds: parseInt(timerInput.value, 10) || MAIN_SECONDS,
-        passSeconds: PASS_SECONDS,
-      };
-    }
+function applySnap(s){
+  /* Restore every piece of state exactly as saved */
+  qIndex         = (s.qIndex         !== undefined) ? s.qIndex         : 0;
+  currentTeam    = (s.currentTeam    !== undefined) ? s.currentTeam    : 0;
+  nextTeamIndex  = (s.nextTeamIndex  !== undefined) ? s.nextTeamIndex  : 0;
+  passCount      = (s.passCount      !== undefined) ? s.passCount      : 0;
+  isPassTurn     = (s.isPassTurn     !== undefined) ? s.isPassTurn     : false;
+  timeLeft       = (s.timeLeft       !== undefined) ? s.timeLeft       : 0;
+  teams          = s.teams || teams;
+  MAIN_SECONDS   = s.mainSeconds || MAIN_SECONDS;
+  PASS_SECONDS   = s.passSeconds || PASS_SECONDS;
+  timerInput.value = MAIN_SECONDS;
+  isRestoredSession = true; /* flag: loadQ must NOT rotate team */
+}
 
-    function saveToLocal() {
-      try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify(buildSnapshot()));
-        const t = new Date().toLocaleTimeString();
-        saveStatus.textContent = `Last saved at ${t}  (Q${qIndex + 1})`;
-      } catch (e) {
-        saveStatus.textContent = "⚠ Could not save (storage full?)";
-      }
-    }
+function exportToFile(){
+  const snap = buildSnap();
+  const blob = new Blob([JSON.stringify(snap,null,2)],{type:"application/json"});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url;
+  a.download = `quiz_Q${qIndex+1}_${new Date().toISOString().slice(0,16).replace("T","_")}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  saveStatus.textContent = `Exported ${new Date().toLocaleTimeString()}`;
+}
 
-    function loadFromLocal() {
-      try {
-        const raw = localStorage.getItem(SAVE_KEY);
-        return raw ? JSON.parse(raw) : null;
-      } catch { return null; }
-    }
-
-    function applySnapshot(snap) {
-      qIndex          = snap.qIndex          || 0;
-      startTeamIndex  = snap.startTeamIndex  || 0;
-      currentTeam     = snap.currentTeam     || 0;
-      teams           = snap.teams           || teams;
-      MAIN_SECONDS    = snap.mainSeconds     || MAIN_SECONDS;
-      PASS_SECONDS    = snap.passSeconds     || PASS_SECONDS;
-      timerInput.value = MAIN_SECONDS;
-    }
-
-    function exportToFile() {
-      const snap = buildSnapshot();
-      const blob = new Blob([JSON.stringify(snap, null, 2)], { type: "application/json" });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href     = url;
-      a.download = `quiz_save_Q${qIndex + 1}_${new Date().toISOString().slice(0,16).replace("T","_")}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      saveStatus.textContent = `Exported at ${new Date().toLocaleTimeString()}`;
-    }
-
-    function importFromFile(file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const snap = JSON.parse(e.target.result);
-          if (!snap.version || !snap.teams) throw new Error("Invalid file");
-          applySnapshot(snap);
-          // Update instruction-screen timer inputs to match
-          document.getElementById("mainTimerSetting").value = MAIN_SECONDS;
-          document.getElementById("passTimerSetting").value = PASS_SECONDS;
-          alert(`Session imported! Resuming from Question ${qIndex + 1}.`);
-          launchQuiz();
-        } catch {
-          alert("Could not read the file. Make sure it's a valid quiz export.");
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    /* ============================================================
-       ACCESS CODE
-    ============================================================ */
-    enterBtn.addEventListener("click", () => {
-      if (codeInput.value.trim() === ACCESS_CODE) {
-        accessOverlay.style.display = "none";
-        instructionScreen.style.display = "block";
-        checkForSave();
-      } else {
-        errorMsg.textContent = "Incorrect code. Try again!";
-        codeInput.value = "";
-      }
-    });
-
-    function checkForSave() {
-      const snap = loadFromLocal();
-      if (snap) {
-        const d = new Date(snap.savedAt);
-        const scores = snap.teams.map(t => `${t.name}: ${t.score}`).join(" | ");
-        resumeInfo.textContent = `Saved ${d.toLocaleString()} — Question ${snap.qIndex + 1} — ${scores}`;
-        resumeBanner.style.display = "block";
-        importOnlyRow.style.display = "none";
-      } else {
-        resumeBanner.style.display = "none";
-        importOnlyRow.style.display = "block";
-      }
-    }
-
-    resumeYesBtn.addEventListener("click", () => {
-      const snap = loadFromLocal();
-      if (snap) { applySnapshot(snap); launchQuiz(); }
-    });
-
-    resumeNoBtn.addEventListener("click", () => {
-      localStorage.removeItem(SAVE_KEY);
-      resumeBanner.style.display = "none";
-      importOnlyRow.style.display = "block";
-    });
-
-    /* Import buttons (two — one in banner, one standalone) */
-    document.getElementById("importJsonBtn").addEventListener("click",  () => jsonFileInput.click());
-    document.getElementById("importJsonBtn2").addEventListener("click", () => jsonFileInput.click());
-    jsonFileInput.addEventListener("change", e => {
-      if (e.target.files[0]) importFromFile(e.target.files[0]);
-      e.target.value = "";
-    });
-
-    document.getElementById("startQuizBtn").addEventListener("click", () => {
-      const mainSec = parseInt(document.getElementById("mainTimerSetting").value, 10);
-      const passSec = parseInt(document.getElementById("passTimerSetting").value, 10);
-      if (!isNaN(mainSec) && mainSec >= 5) { MAIN_SECONDS = mainSec; timerInput.value = mainSec; }
-      if (!isNaN(passSec) && passSec >= 5) { PASS_SECONDS = passSec; }
+function importFromFile(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const s = JSON.parse(e.target.result);
+      if(!s.teams) throw 0;
+      applySnap(s);
+      document.getElementById("mainTimerSetting").value = MAIN_SECONDS;
+      document.getElementById("passTimerSetting").value = PASS_SECONDS;
+      alert(`Session imported! Resuming Q${qIndex+1}.`);
       launchQuiz();
-    });
+    }catch(e){ alert("Invalid save file."); }
+  };
+  reader.readAsText(file);
+}
 
-    function launchQuiz() {
-      instructionScreen.style.display = "none";
-      quizLayout.style.display = "flex";
-      renderTeams();
-      loadQuestionsFromCSV();
-    }
-
-    /* ---- In-quiz save bar ---- */
-    saveNowBtn.addEventListener("click", () => { saveToLocal(); });
-    exportBtn.addEventListener("click",  () => { exportToFile(); });
-    clearSaveBtn.addEventListener("click", () => {
-      if (confirm("Clear the saved session? This cannot be undone.")) {
-        localStorage.removeItem(SAVE_KEY);
-        saveStatus.textContent = "Save cleared.";
-      }
-    });
-
-    /* ============================================================
-       UTILS
-    ============================================================ */
-    function csvToRows(csvText) {
-      const rows = []; let row = [], cell = "", inQuotes = false;
-      for (let i = 0; i < csvText.length; i++) {
-        const c = csvText[i];
-        if (c === '"') {
-          if (inQuotes && csvText[i + 1] === '"') { cell += '"'; i++; }
-          else inQuotes = !inQuotes;
-        } else if (c === ',' && !inQuotes) {
-          row.push(cell); cell = "";
-        } else if (c === '\n' && !inQuotes) {
-          row.push(cell); rows.push(row); row = []; cell = "";
-        } else {
-          cell += c;
-        }
-      }
-      if (cell || row.length) { row.push(cell); rows.push(row); }
-      return rows;
-    }
-
-    function isImageUrl(s) {
-      if (!s) return false;
-      const lower = s.trim().toLowerCase();
-      return lower.startsWith("img:") || /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(lower);
-    }
-
-    function normalizeType(raw) {
-      if (!raw) return "MCQ";
-      const s = raw.trim().toUpperCase();
-      if (s === "TF" || s === "TRUE/FALSE" || s === "TRUE FALSE" || s === "T/F") return "TF";
-      if (s === "FITB" || s === "FILL IN THE BLANK" || s === "FILLINTHEBLANK" || s === "FIB") return "FITB";
-      return "MCQ";
-    }
-
-    function resolveCorrectIndex(rawAnswer, options) {
-      const raw = rawAnswer.trim();
-      const num = parseInt(raw, 10);
-      if (!isNaN(num) && num >= 1 && num <= 4) return num - 1;
-      const letter = raw.toUpperCase();
-      if (["A","B","C","D"].includes(letter)) return ["A","B","C","D"].indexOf(letter);
-      const match = options.findIndex(o => o.trim().toLowerCase() === raw.toLowerCase());
-      return match >= 0 ? match : 0;
-    }
-
-    /* ============================================================
-       LEADERBOARD
-    ============================================================ */
-    function renderTeams() {
-      teamsWrap.innerHTML = "";
-      teams.forEach((t, idx) => {
-        const row = document.createElement("div");
-        row.className = "team" + (idx === currentTeam ? " active" : "");
-        row.innerHTML = `
-          <input type="text" value="${t.name}" />
-          <span class="score" contenteditable="true">${t.score}</span>
-          <button class="smallbtn" data-i="${idx}" data-delta="1">+1</button>
-          <button class="smallbtn" data-i="${idx}" data-delta="-1">-1</button>
-          <button class="smallbtn" data-i="${idx}" data-delta="5">+5</button>
-          <button class="smallbtn" data-i="${idx}" data-delta="-5">-5</button>
-        `;
-        row.querySelector("input").addEventListener("change", e => {
-          teams[idx].name = e.target.value.trim() || `Team ${idx + 1}`;
-          updateCurrentTeamDisplay();
-        });
-        row.querySelector(".score").addEventListener("input", e => {
-          teams[idx].score = parseInt(e.target.innerText) || 0;
-        });
-        row.querySelectorAll(".smallbtn").forEach(btn => btn.addEventListener("click", () => {
-          teams[+btn.dataset.i].score += +btn.dataset.delta;
-          renderTeams();
-          saveToLocal(); // auto-save on manual score change
-        }));
-        teamsWrap.appendChild(row);
-      });
-    }
-
-    function updateCurrentTeamDisplay() {
-      currentTeamEl.innerHTML = `Current Team: <span class="name">${teams[currentTeam].name}</span> (Pass ${passCount})`;
-      document.querySelectorAll(".team").forEach((el, i) => el.classList.toggle("active", i === currentTeam));
-    }
-
-    /* ============================================================
-       TIMER
-    ============================================================ */
-    function startTimerMain() { isPassTurn = false; startTimer(parseInt(timerInput.value, 10) || MAIN_SECONDS); }
-    function startTimerPass() { isPassTurn = true;  startTimer(PASS_SECONDS); }
-
-    function startTimer(seconds) {
-      clearInterval(timerId);
-      overlay.style.display = "none";
-      timerBox.classList.remove("red", "orange");
-      timeLeft = seconds; timeEl.textContent = timeLeft;
-      timerId = setInterval(() => {
-        timeLeft--; timeEl.textContent = timeLeft;
-        timerBox.classList.toggle("red",    !isPassTurn && timeLeft <= 10 && timeLeft > 0);
-        timerBox.classList.toggle("orange",  isPassTurn && timeLeft <= 5  && timeLeft > 0);
-        if (timeLeft <= 0) {
-          clearInterval(timerId);
-          overlay.style.display = "block";
-          handleAutoPassOrEnd();
-        }
-      }, 1000);
-    }
-
-    function handleAutoPassOrEnd() {
-      if (passCount < 3) {
-        passCount++; currentTeam = (currentTeam + 1) % teams.length;
-        updateCurrentTeamDisplay();
-        if (currentType === "FITB") {
-          fitbInput.value = ""; fitbInput.className = "";
-          fitbFeedback.textContent = "";
-          fitbInput.disabled = false; fitbSubmitBtn.disabled = false;
-        }
-        setTimeout(() => { overlay.style.display = "none"; startTimerPass(); }, 500);
-      } else {
-        clearInterval(timerId); overlay.style.display = "none";
-        disableAllOptions(); disableFitb();
-        questionCompleted = true;
-        showAnswerBtn.disabled = false; nextBtn.disabled = false;
-      }
-    }
-
-    /* ============================================================
-       QUESTION LOADING
-    ============================================================ */
-    function loadQuestionsFromCSV() {
-      fetch(CSV_URL)
-        .then(r => r.text())
-        .then(txt => {
-          const rows = csvToRows(txt);
-          questions = rows.slice(1).filter(r => r[0] && r[0].trim()).map(r => ({
-            question:  (r[0] || "").trim(),
-            options:   [r[1]||"", r[2]||"", r[3]||"", r[4]||""].map(s => s.trim()),
-            rawAnswer: (r[5] || "").trim(),
-            type:      normalizeType(r[6])
-          }));
-          loadQuestion();
-        })
-        .catch(err => {
-          qText.textContent = "Error loading questions. Check CSV URL.";
-          console.error(err);
-        });
-    }
-
-    function loadQuestion() {
-      if (qIndex >= questions.length) {
-        qText.textContent = "🎉 Quiz Finished. Great job!";
-        typeBadge.textContent = "";
-        optionsWrap.innerHTML = ""; fitbArea.style.display = "none";
-        showAnswerBtn.disabled = true; nextBtn.disabled = true;
-        localStorage.removeItem(SAVE_KEY); // clear save on completion
-        saveStatus.textContent = "Quiz complete — save cleared.";
-        return;
-      }
-
-      currentTeam = startTeamIndex % teams.length;
-      startTeamIndex++; passCount = 0;
-      questionCompleted = false;
-      overlay.style.display = "none";
-
-      const q = questions[qIndex];
-      currentType = q.type;
-      qText.innerHTML = "";
-q.question.split("\n").forEach(line => {
-  line = line.trim();
-  if (!line) return;
-  if (line.toLowerCase().startsWith("img:")) {
-    const url = line.slice(4).trim();
-    const img = document.createElement("img");
-    img.src = url;
-    img.alt = "Question image";
-    img.style.cssText = "max-width:100%; max-height:220px; object-fit:contain; display:block; margin:10px auto; border-radius:8px;";
-    qText.appendChild(img);
-  } else {
-    const p = document.createElement("p");
-    p.style.margin = "0 0 6px";
-    p.textContent = line;
-    qText.appendChild(p);
+/* ============================================================
+   ACCESS CODE & NAVIGATION
+============================================================ */
+enterBtn.addEventListener("click",()=>{
+  if(codeInput.value.trim() === ACCESS_CODE){
+    try{ getCtx(); }catch(e){}
+    accessOverlay.style.display = "none";
+    instructionScreen.style.display = "block";
+    checkForSave();
+  }else{
+    errorMsg.textContent = "Incorrect code. Try again!";
+    codeInput.value = "";
   }
 });
 
-      if (currentType === "TF") {
-        typeBadge.textContent = "True / False"; typeBadge.className = "type-badge tf";
-      } else if (currentType === "FITB") {
-        typeBadge.textContent = "Fill in the Blank"; typeBadge.className = "type-badge fitb";
-      } else {
-        typeBadge.textContent = "Multiple Choice"; typeBadge.className = "type-badge mcq";
-      }
+function checkForSave(){
+  const s = loadFromLocal();
+  if(s){
+    const d      = new Date(s.savedAt);
+    const scores = (s.teams||[]).map(t=>`${t.name}: ${t.score}`).join(" | ");
+    const timer  = s.isPassTurn ? `Pass timer: ${s.timeLeft}s` : `Main timer: ${s.timeLeft}s`;
+    const pass   = s.passCount > 0 ? ` | Pass ${s.passCount}` : "";
+    resumeInfo.textContent =
+      `${d.toLocaleString()} — Q${s.qIndex+1} — Team: ${(s.teams||[])[s.currentTeam]?.name||"?"}${pass} — ${timer} — ${scores}`;
+    resumeBanner.style.display = "block";
+    importOnlyRow.style.display = "none";
+  }else{
+    resumeBanner.style.display = "none";
+    importOnlyRow.style.display = "block";
+  }
+}
 
-      optionsWrap.innerHTML = "";
-      fitbArea.style.display = "none";
-      fitbInput.value = ""; fitbInput.className = "";
-      fitbFeedback.textContent = "";
-      fitbInput.disabled = false; fitbSubmitBtn.disabled = false;
-      showAnswerBtn.disabled = true; nextBtn.disabled = true;
+resumeYesBtn.addEventListener("click",()=>{
+  const s = loadFromLocal();
+  if(s){ applySnap(s); launchQuiz(); }
+});
 
-      if      (currentType === "FITB") renderFitb(q);
-      else if (currentType === "TF")   renderTF(q);
-      else                             renderMCQ(q);
+resumeNoBtn.addEventListener("click",()=>{
+  localStorage.removeItem(SAVE_KEY);
+  resumeBanner.style.display = "none";
+  importOnlyRow.style.display = "block";
+});
 
-      updateCurrentTeamDisplay(); renderTeams();
+document.getElementById("importJsonBtn").addEventListener("click", ()=>jsonFileInput.click());
+document.getElementById("importJsonBtn2").addEventListener("click",()=>jsonFileInput.click());
+jsonFileInput.addEventListener("change",e=>{
+  if(e.target.files[0]) importFromFile(e.target.files[0]);
+  e.target.value="";
+});
 
-      // Auto-save at the start of each question
-      saveToLocal();
+document.getElementById("startQuizBtn").addEventListener("click",()=>{
+  try{ getCtx(); }catch(e){}
+  const m = parseInt(document.getElementById("mainTimerSetting").value,10);
+  const p = parseInt(document.getElementById("passTimerSetting").value,10);
+  if(!isNaN(m) && m>=5){ MAIN_SECONDS=m; timerInput.value=m; }
+  if(!isNaN(p) && p>=5)  PASS_SECONDS=p;
+  launchQuiz();
+});
 
-      startTimerMain();
-    }
+function launchQuiz(){
+  instructionScreen.style.display = "none";
+  quizLayout.style.display = "flex";
+  renderTeams();
+  loadCSV();
+}
 
-    /* ---- MCQ ---- */
-    function renderMCQ(q) {
-      optionsWrap.style.display = "grid";
-      optionsWrap.style.gridTemplateColumns = "1fr 1fr";
-      correctIndex = resolveCorrectIndex(q.rawAnswer, q.options);
-      q.options.forEach((opt, i) => {
-        if (!opt) return;
-        const btn = document.createElement("button");
-        btn.className = "option"; btn.dataset.index = i;
-        if (isImageUrl(opt)) {
-          const url = opt.toLowerCase().startsWith("img:") ? opt.slice(4).trim() : opt;
-          const img = document.createElement("img"); img.src = url; img.alt = `Option ${i+1}`;
-          btn.appendChild(img);
-        } else {
-          btn.textContent = opt;
-        }
-        btn.addEventListener("click", () => handleOptionClick(btn, i));
-        optionsWrap.appendChild(btn);
-      });
-    }
+document.getElementById("saveNowBtn").addEventListener("click",  saveToLocal);
+document.getElementById("exportBtn").addEventListener("click",   exportToFile);
+document.getElementById("clearSaveBtn").addEventListener("click",()=>{
+  if(confirm("Clear saved session? This cannot be undone.")){
+    localStorage.removeItem(SAVE_KEY);
+    saveStatus.textContent = "Save cleared.";
+  }
+});
 
-    /* ---- True / False ---- */
-    function renderTF(q) {
-      optionsWrap.style.display = "grid";
-      optionsWrap.style.gridTemplateColumns = "1fr 1fr";
-      const raw = q.rawAnswer.toLowerCase();
-      correctIndex = (raw === "true" || raw === "a" || raw === "1") ? 0 : 1;
-      ["True", "False"].forEach((label, i) => {
-        const btn = document.createElement("button");
-        btn.className = "option"; btn.dataset.index = i;
-        btn.textContent = label;
-        btn.addEventListener("click", () => handleOptionClick(btn, i));
-        optionsWrap.appendChild(btn);
-      });
-    }
+/* ============================================================
+   UTILS
+============================================================ */
+function csvToRows(txt){
+  const rows=[]; let row=[],cell="",inQ=false;
+  for(let i=0;i<txt.length;i++){
+    const c=txt[i];
+    if(c==='"'){ if(inQ&&txt[i+1]==='"'){cell+='"';i++;}else inQ=!inQ; }
+    else if(c===','&&!inQ){ row.push(cell); cell=""; }
+    else if(c==='\n'&&!inQ){ row.push(cell); rows.push(row); row=[]; cell=""; }
+    else cell+=c;
+  }
+  if(cell||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
 
-    /* ---- Fill in the Blank ---- */
-    function renderFitb(q) {
-      optionsWrap.style.display = "none";
-      fitbArea.style.display = "block";
-      correctAnswerText = q.rawAnswer;
-      fitbInput.focus();
-    }
+function isImgUrl(s){
+  if(!s) return false;
+  const l=s.trim().toLowerCase();
+  return l.startsWith("img:") || /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(l);
+}
 
-    /* ---- Option click (MCQ + TF) ---- */
-    function handleOptionClick(btn, i) {
-      if (questionCompleted) return;
-      if (i === correctIndex) {
-        btn.classList.add("correct");
-        disableAllOptions(); clearInterval(timerId); overlay.style.display = "none";
-        teams[currentTeam].score += PASS_POINTS[Math.min(passCount, PASS_POINTS.length - 1)];
-        renderTeams(); showAnswerBtn.disabled = false;
-        saveToLocal();
-      } else {
-        btn.classList.add("wrong"); btn.disabled = true;
-        if (Array.from(optionsWrap.children).every(b => b.disabled)) {
-          clearInterval(timerId); showAnswerBtn.disabled = false; return;
-        }
-        clearInterval(timerId); handleAutoPassOrEnd();
-      }
-    }
+function normType(r){
+  if(!r) return "MCQ";
+  const s=r.trim().toUpperCase();
+  if(["TF","TRUE/FALSE","T/F","TRUE FALSE"].includes(s)) return "TF";
+  if(["FITB","FIB","FILL IN THE BLANK","FILLINTHEBLANK"].includes(s)) return "FITB";
+  return "MCQ";
+}
 
-    /* ---- FITB submit ---- */
-    fitbSubmitBtn.addEventListener("click", () => {
-      if (questionCompleted) return;
-      const given    = fitbInput.value.trim().toLowerCase();
-      const expected = correctAnswerText.trim().toLowerCase();
-      if (given === "") return;
-      clearInterval(timerId); overlay.style.display = "none";
-      disableFitb();
-      if (given === expected) {
-        fitbInput.classList.add("correct");
-        fitbFeedback.style.color = "var(--correct)";
-        fitbFeedback.textContent = "✓ Correct!";
-        teams[currentTeam].score += PASS_POINTS[Math.min(passCount, PASS_POINTS.length - 1)];
-        renderTeams();
-        questionCompleted = true;
-        showAnswerBtn.disabled = false; nextBtn.disabled = false;
-        saveToLocal();
-      } else {
-        fitbInput.classList.add("wrong");
-        fitbFeedback.style.color = "var(--wrong)";
-        fitbFeedback.textContent = `✗ Incorrect. You answered: "${fitbInput.value.trim()}"`;
-        setTimeout(() => {
-          fitbInput.classList.remove("wrong");
-          fitbInput.value = ""; fitbFeedback.textContent = "";
-          handleAutoPassOrEnd();
-        }, 800);
-      }
+function resolveIdx(raw,opts){
+  const r=raw.trim();
+  const n=parseInt(r,10);
+  if(!isNaN(n)&&n>=1&&n<=4) return n-1;
+  const l=r.toUpperCase();
+  if(["A","B","C","D"].includes(l)) return ["A","B","C","D"].indexOf(l);
+  const m=opts.findIndex(o=>o.trim().toLowerCase()===r.toLowerCase());
+  return m>=0?m:0;
+}
+
+/* ============================================================
+   LEADERBOARD
+============================================================ */
+function renderTeams(){
+  teamsWrap.innerHTML="";
+  teams.forEach((t,idx)=>{
+    const row=document.createElement("div");
+    row.className="team"+(idx===currentTeam?" active":"");
+    row.innerHTML=`
+      <input type="text" value="${t.name}"/>
+      <span class="score" contenteditable="true">${t.score}</span>
+      <button class="smallbtn" data-i="${idx}" data-d="1">+1</button>
+      <button class="smallbtn" data-i="${idx}" data-d="-1">-1</button>
+      <button class="smallbtn" data-i="${idx}" data-d="5">+5</button>
+      <button class="smallbtn" data-i="${idx}" data-d="-5">-5</button>
+    `;
+    row.querySelector("input").addEventListener("change",e=>{
+      teams[idx].name=e.target.value.trim()||`Team ${idx+1}`;
+      updateTeamDisplay();
     });
-
-    fitbInput.addEventListener("keydown", e => { if (e.key === "Enter") fitbSubmitBtn.click(); });
-
-    /* ---- Show Correct Answer ---- */
-    showAnswerBtn.addEventListener("click", () => {
-      if (currentType === "FITB") {
-        fitbInput.value = correctAnswerText;
-        fitbInput.className = "correct";
-        fitbFeedback.style.color = "var(--correct)";
-        fitbFeedback.textContent = `✓ Correct answer: ${correctAnswerText}`;
-        disableFitb();
-      } else {
-        optionsWrap.children[correctIndex]?.classList.add("correct");
-        disableAllOptions();
-      }
-      questionCompleted = true;
-      nextBtn.disabled = false; showAnswerBtn.disabled = true;
+    row.querySelector(".score").addEventListener("input",e=>{
+      teams[idx].score=parseInt(e.target.innerText)||0;
     });
+    row.querySelectorAll(".smallbtn").forEach(b=>b.addEventListener("click",()=>{
+      teams[+b.dataset.i].score+=+b.dataset.d;
+      renderTeams(); saveToLocal();
+    }));
+    teamsWrap.appendChild(row);
+  });
+}
 
-    /* ---- Next Question ---- */
-    nextBtn.addEventListener("click", () => { qIndex++; loadQuestion(); });
+function updateTeamDisplay(){
+  const passLabel = passCount>0 ? ` (Pass ${passCount})` : "";
+  currentTeamEl.innerHTML=`Current Team: <span class="name">${teams[currentTeam].name}</span>${passLabel}`;
+  document.querySelectorAll(".team").forEach((el,i)=>el.classList.toggle("active",i===currentTeam));
+}
 
-    /* ============================================================
-       HELPERS
-    ============================================================ */
-    function disableAllOptions() { Array.from(optionsWrap.children).forEach(b => b.disabled = true); }
-    function disableFitb() { fitbInput.disabled = true; fitbSubmitBtn.disabled = true; }
+/* ============================================================
+   TIMER
+   
+   startMainTimer() — starts a fresh MAIN timer for a new question
+   startPassTimer() — starts a pass timer (shorter)
+   resumeTimer()    — resumes from saved timeLeft (used after restore)
+============================================================ */
+function startMainTimer(){
+  isPassTurn = false;
+  timeLeft   = parseInt(timerInput.value,10) || MAIN_SECONDS;
+  runTimer();
+}
 
-  </script>
+function startPassTimer(){
+  isPassTurn = true;
+  timeLeft   = PASS_SECONDS;
+  runTimer();
+}
+
+function resumeTimer(){
+  /* timeLeft and isPassTurn are already set from the snapshot */
+  runTimer();
+}
+
+function runTimer(){
+  clearInterval(timerId);
+  overlay.style.display="none";
+  timerBox.classList.remove("red","orange");
+  timeEl.textContent = timeLeft;
+
+  timerId = setInterval(()=>{
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+    timerBox.classList.toggle("red",    !isPassTurn && timeLeft<=10 && timeLeft>0);
+    timerBox.classList.toggle("orange",  isPassTurn && timeLeft<=5  && timeLeft>0);
+    if(timeLeft<=5 && timeLeft>0) sfxTick();
+
+    /* Auto-save every second so timeLeft is always current */
+    saveToLocal();
+
+    if(timeLeft<=0){
+      clearInterval(timerId);
+      overlay.style.display="block";
+      sfxTimeUp();
+      handlePassOrEnd();
+    }
+  },1000);
+}
+
+function handlePassOrEnd(){
+  if(passCount<3){
+    passCount++;
+    currentTeam=(currentTeam+1)%teams.length;
+    /* nextTeamIndex does NOT change during passes —
+       it only advances when a NEW question starts    */
+    updateTeamDisplay();
+    if(currentType==="FITB"){
+      fitbInput.value=""; fitbInput.className="";
+      fitbFeedback.textContent="";
+      fitbInput.disabled=false; fitbSubmitBtn.disabled=false;
+    }
+    setTimeout(()=>{ overlay.style.display="none"; startPassTimer(); },500);
+  }else{
+    clearInterval(timerId); overlay.style.display="none";
+    disableOpts(); disableFitb();
+    questionCompleted=true;
+    showAnswerBtn.disabled=false; nextBtn.disabled=true;
+  }
+}
+
+/* ============================================================
+   QUESTION LOADING
+   
+   KEY DESIGN:
+   - On a FRESH question: assign currentTeam from nextTeamIndex,
+     then increment nextTeamIndex for the NEXT question.
+   - On RESTORE: skip that block entirely — currentTeam and
+     nextTeamIndex are already correct from applySnap.
+   - After the restore, resume the timer from saved timeLeft.
+============================================================ */
+function loadCSV(){
+  fetch(CSV_URL)
+    .then(r=>r.text())
+    .then(txt=>{
+      const rows=csvToRows(txt);
+      questions=rows.slice(1).filter(r=>r[0]&&r[0].trim()).map(r=>({
+        question : (r[0]||"").trim(),
+        options  : [r[1]||"",r[2]||"",r[3]||"",r[4]||""].map(s=>s.trim()),
+        rawAnswer: (r[5]||"").trim(),
+        type     : normType(r[6]),
+        round    : (r[7]||"").trim()
+      }));
+      loadQ();
+    })
+    .catch(()=>{ qText.textContent="Error loading questions. Check CSV URL."; });
+}
+
+function loadQ(){
+  /* ── Finished ── */
+  if(qIndex>=questions.length){
+    qText.textContent="🎉 Quiz Finished! Great job!";
+    typeBadge.textContent=""; roundBadge.style.display="none";
+    optionsWrap.innerHTML=""; fitbArea.style.display="none";
+    showAnswerBtn.disabled=true; nextBtn.disabled=true;
+    localStorage.removeItem(SAVE_KEY);
+    saveStatus.textContent="Quiz complete — save cleared.";
+    sfxFinish();
+    return;
+  }
+
+  /* ── Team assignment ──
+     ONLY runs on a fresh (non-restored) question.
+     On restore, currentTeam and nextTeamIndex come from the snapshot. */
+  const resuming = isRestoredSession;  /* capture BEFORE clearing */
+  isRestoredSession = false;           /* clear for future calls  */
+
+  if(!resuming){
+    currentTeam   = nextTeamIndex % teams.length;
+    nextTeamIndex = (nextTeamIndex + 1) % teams.length;
+    passCount     = 0;
+    isPassTurn    = false;
+  }
+
+  questionCompleted = false;
+  overlay.style.display = "none";
+
+  /* ── Render question ── */
+  const q = questions[qIndex];
+  currentType = q.type;
+
+  qText.innerHTML="";
+  q.question.split("\n").forEach(line=>{
+    line=line.trim(); if(!line) return;
+    if(line.toLowerCase().startsWith("img:")){
+      const img=document.createElement("img");
+      img.src=line.slice(4).trim(); img.alt="";
+      img.style.cssText="max-width:100%;max-height:200px;object-fit:contain;display:block;margin:8px auto;border-radius:8px;";
+      qText.appendChild(img);
+    }else{
+      const p=document.createElement("p");
+      p.style.margin="0 0 4px";
+      p.textContent=`Q${qIndex+1}. ${line}`;
+      qText.appendChild(p);
+    }
+  });
+
+  if(currentType==="TF")        { typeBadge.textContent="True / False";     typeBadge.className="type-badge tf"; }
+  else if(currentType==="FITB") { typeBadge.textContent="Fill in the Blank"; typeBadge.className="type-badge fitb"; }
+  else                          { typeBadge.textContent="Multiple Choice";   typeBadge.className="type-badge mcq"; }
+
+  if(q.round){ roundBadge.textContent=q.round; roundBadge.style.display="inline-block"; }
+  else         roundBadge.style.display="none";
+
+  optionsWrap.innerHTML="";
+  fitbArea.style.display="none";
+  fitbInput.value=""; fitbInput.className="";
+  fitbFeedback.textContent="";
+  fitbInput.disabled=false; fitbSubmitBtn.disabled=false;
+  showAnswerBtn.disabled=true; nextBtn.disabled=true;
+
+  if     (currentType==="FITB") renderFitb(q);
+  else if(currentType==="TF")   renderTF(q);
+  else                          renderMCQ(q);
+
+  updateTeamDisplay();
+  renderTeams();
+
+  /* ── Start or resume timer ── */
+  if(resuming){
+    resumeTimer();
+  }else{
+    startMainTimer();
+  }
+
+  /* Initial save for this question */
+  saveToLocal();
+}
+
+/* ---- MCQ ---- */
+function renderMCQ(q){
+  optionsWrap.style.display="grid";
+  optionsWrap.style.gridTemplateColumns="1fr 1fr";
+  correctIndex=resolveIdx(q.rawAnswer,q.options);
+  q.options.forEach((opt,i)=>{
+    if(!opt) return;
+    const btn=document.createElement("button");
+    btn.className="option"; btn.dataset.index=i;
+    if(isImgUrl(opt)){
+      const url=opt.toLowerCase().startsWith("img:")?opt.slice(4).trim():opt;
+      const img=document.createElement("img"); img.src=url; img.alt=`Option ${i+1}`;
+      btn.appendChild(img);
+    }else{ btn.textContent=opt; }
+    btn.addEventListener("click",()=>handleOpt(btn,i));
+    optionsWrap.appendChild(btn);
+  });
+}
+
+/* ---- True / False ---- */
+function renderTF(q){
+  optionsWrap.style.display="grid";
+  optionsWrap.style.gridTemplateColumns="1fr 1fr";
+  const raw=q.rawAnswer.toLowerCase();
+  correctIndex=(raw==="true"||raw==="a"||raw==="1")?0:1;
+  ["True","False"].forEach((label,i)=>{
+    const btn=document.createElement("button");
+    btn.className="option"; btn.dataset.index=i; btn.textContent=label;
+    btn.addEventListener("click",()=>handleOpt(btn,i));
+    optionsWrap.appendChild(btn);
+  });
+}
+
+/* ---- Fill in the Blank ---- */
+function renderFitb(q){
+  optionsWrap.style.display="none";
+  fitbArea.style.display="block";
+  correctAnswerText=q.rawAnswer;
+  fitbInput.focus();
+}
+
+/* ---- Option click (MCQ + TF) ---- */
+function handleOpt(btn,i){
+  if(questionCompleted) return;
+  if(i===correctIndex){
+    btn.classList.add("correct"); sfxCorrect();
+    disableOpts(); clearInterval(timerId); overlay.style.display="none";
+    teams[currentTeam].score+=PASS_POINTS[Math.min(passCount,PASS_POINTS.length-1)];
+    renderTeams(); showAnswerBtn.disabled=false; saveToLocal();
+  }else{
+    btn.classList.add("wrong"); sfxWrong(); btn.disabled=true;
+    if(Array.from(optionsWrap.children).every(b=>b.disabled)){
+      clearInterval(timerId); showAnswerBtn.disabled=false; return;
+    }
+    clearInterval(timerId); handlePassOrEnd();
+  }
+}
+
+/* ---- FITB submit ---- */
+fitbSubmitBtn.addEventListener("click",()=>{
+  if(questionCompleted) return;
+  const given    = fitbInput.value.trim().toLowerCase();
+  const expected = correctAnswerText.trim().toLowerCase();
+  if(!given) return;
+  clearInterval(timerId); overlay.style.display="none"; disableFitb();
+  if(given===expected){
+    fitbInput.classList.add("correct");
+    fitbFeedback.style.color="var(--correct)";
+    fitbFeedback.textContent="✓ Correct!";
+    sfxCorrect();
+    teams[currentTeam].score+=PASS_POINTS[Math.min(passCount,PASS_POINTS.length-1)];
+    renderTeams(); questionCompleted=true;
+    showAnswerBtn.disabled=false; nextBtn.disabled=false;
+    saveToLocal();
+  }else{
+    fitbInput.classList.add("wrong"); sfxWrong();
+    fitbFeedback.style.color="var(--wrong)";
+    fitbFeedback.textContent=`✗ Incorrect: "${fitbInput.value.trim()}"`;
+    setTimeout(()=>{
+      fitbInput.classList.remove("wrong");
+      fitbInput.value=""; fitbFeedback.textContent="";
+      handlePassOrEnd();
+    },800);
+  }
+});
+
+fitbInput.addEventListener("keydown",e=>{ if(e.key==="Enter") fitbSubmitBtn.click(); });
+
+/* ---- Show Correct Answer ---- */
+showAnswerBtn.addEventListener("click",()=>{
+  if(currentType==="FITB"){
+    fitbInput.value=correctAnswerText; fitbInput.className="correct";
+    fitbFeedback.style.color="var(--correct)";
+    fitbFeedback.textContent=`✓ Answer: ${correctAnswerText}`;
+    disableFitb();
+  }else{
+    optionsWrap.children[correctIndex]?.classList.add("correct");
+    disableOpts();
+  }
+  questionCompleted=true;
+  nextBtn.disabled=false; showAnswerBtn.disabled=true;
+});
+
+/* ---- Next Question ----
+   Advance qIndex and nextTeamIndex rotates automatically in loadQ */
+nextBtn.addEventListener("click",()=>{
+  qIndex++;
+  loadQ();
+});
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function disableOpts(){ Array.from(optionsWrap.children).forEach(b=>b.disabled=true); }
+function disableFitb(){ fitbInput.disabled=true; fitbSubmitBtn.disabled=true; }
+
+</script>
 </body>
 </html>

@@ -697,12 +697,11 @@ function loadQ(){
   renderTeams();
 
   /* ── Start or resume timer ── */
-  if(isRestoredSession){
-  resumeTimer();
-}else{
-  startMainTimer();
-}
-
+  if(resuming){
+    resumeTimer();
+  }else{
+    startMainTimer();
+  }
   /* Initial save for this question */
   saveToLocal();
 }

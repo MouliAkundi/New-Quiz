@@ -756,9 +756,8 @@ function handleOpt(btn,i){
     teams[currentTeam].score+=PASS_POINTS[Math.min(passCount,PASS_POINTS.length-1)];
     renderTeams(); showAnswerBtn.disabled=false; saveToLocal();
   }else{
-    btn.classList.add('wrong');
-btn.disabled = true;sfxWrong()
-
+    btn.classList.add('wrong');sfxWrong()
+btn.disabled = true;
 setTimeout(() => {
     btn.classList.remove('wrong');
     btn.disabled = false;

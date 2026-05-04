@@ -755,11 +755,29 @@ function handleOpt(btn,i){
     disableOpts(); clearInterval(timerId); overlay.style.display="none";
     teams[currentTeam].score+=PASS_POINTS[Math.min(passCount,PASS_POINTS.length-1)];
     renderTeams(); showAnswerBtn.disabled=false; saveToLocal();
-  }else{
-    btn.classList.add("wrong"); sfxWrong(); btn.disabled=true;
-    if(Array.from(optionsWrap.children).every(b=>b.disabled)){
-      clearInterval(timerId); showAnswerBtn.disabled=false; return;
-    }
+ }else{
+  btn.classList.add("wrong"); 
+  sfxWrong();
+
+  /* show red for 2 seconds, then reset */
+  setTimeout(()=>{
+    btn.classList.remove("wrong");
+  },2000);
+
+  clearInterval(timerId);
+  handlePassOrEnd();
+}
+
+  /* TEMPORARY RED FEEDBACK (2 seconds) */
+  setTimeout(()=>{
+    btn.classList.remove("wrong");
+    btn.disabled = false;   // allow next team to click again
+  }, 2000);
+
+  clearInterval(timerId);
+  handlePassOrEnd();
+}
+    
     clearInterval(timerId); handlePassOrEnd();
   }
 }
